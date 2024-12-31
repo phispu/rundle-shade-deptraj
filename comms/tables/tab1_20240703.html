@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<style>body{background-color:white;}</style>
+
+
+</head>
+<body>
+<div id="mtysutyeno" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+  <style>#mtysutyeno table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#mtysutyeno thead, #mtysutyeno tbody, #mtysutyeno tfoot, #mtysutyeno tr, #mtysutyeno td, #mtysutyeno th {
+  border-style: none;
+}
+
+#mtysutyeno p {
+  margin: 0;
+  padding: 0;
+}
+
+#mtysutyeno .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#mtysutyeno .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#mtysutyeno .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#mtysutyeno .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#mtysutyeno .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#mtysutyeno .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#mtysutyeno .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#mtysutyeno .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#mtysutyeno .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#mtysutyeno .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#mtysutyeno .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#mtysutyeno .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#mtysutyeno .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#mtysutyeno .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#mtysutyeno .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#mtysutyeno .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#mtysutyeno .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#mtysutyeno .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#mtysutyeno .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#mtysutyeno .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#mtysutyeno .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#mtysutyeno .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#mtysutyeno .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#mtysutyeno .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#mtysutyeno .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#mtysutyeno .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#mtysutyeno .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#mtysutyeno .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#mtysutyeno .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#mtysutyeno .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#mtysutyeno .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#mtysutyeno .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#mtysutyeno .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#mtysutyeno .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#mtysutyeno .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#mtysutyeno .gt_left {
+  text-align: left;
+}
+
+#mtysutyeno .gt_center {
+  text-align: center;
+}
+
+#mtysutyeno .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#mtysutyeno .gt_font_normal {
+  font-weight: normal;
+}
+
+#mtysutyeno .gt_font_bold {
+  font-weight: bold;
+}
+
+#mtysutyeno .gt_font_italic {
+  font-style: italic;
+}
+
+#mtysutyeno .gt_super {
+  font-size: 65%;
+}
+
+#mtysutyeno .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#mtysutyeno .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#mtysutyeno .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#mtysutyeno .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#mtysutyeno .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#mtysutyeno .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#mtysutyeno .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+  <table class="gt_table" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+  <thead>
+    <tr class="gt_col_headings">
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1" scope="col" id="&lt;strong&gt;Variable&lt;/strong&gt;"><strong>Variable</strong></th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="&lt;strong&gt;N = 3,341&lt;/strong&gt;&lt;span class=&quot;gt_footnote_marks&quot; style=&quot;white-space:nowrap;font-style:italic;font-weight:normal;&quot;&gt;&lt;sup&gt;1&lt;/sup&gt;&lt;/span&gt;"><strong>N = 3,341</strong><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>1</sup></span></th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="&lt;strong&gt;[0.0779,1.06]&lt;/strong&gt;, N = 838&lt;span class=&quot;gt_footnote_marks&quot; style=&quot;white-space:nowrap;font-style:italic;font-weight:normal;&quot;&gt;&lt;sup&gt;1&lt;/sup&gt;&lt;/span&gt;"><strong>[0.0779,1.06]</strong>, N = 838<span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>1</sup></span></th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="&lt;strong&gt;(1.06,1.67]&lt;/strong&gt;, N = 833&lt;span class=&quot;gt_footnote_marks&quot; style=&quot;white-space:nowrap;font-style:italic;font-weight:normal;&quot;&gt;&lt;sup&gt;1&lt;/sup&gt;&lt;/span&gt;"><strong>(1.06,1.67]</strong>, N = 833<span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>1</sup></span></th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="&lt;strong&gt;(1.67,2.74]&lt;/strong&gt;, N = 835&lt;span class=&quot;gt_footnote_marks&quot; style=&quot;white-space:nowrap;font-style:italic;font-weight:normal;&quot;&gt;&lt;sup&gt;1&lt;/sup&gt;&lt;/span&gt;"><strong>(1.67,2.74]</strong>, N = 835<span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>1</sup></span></th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1" scope="col" id="&lt;strong&gt;(2.74,12.6]&lt;/strong&gt;, N = 835&lt;span class=&quot;gt_footnote_marks&quot; style=&quot;white-space:nowrap;font-style:italic;font-weight:normal;&quot;&gt;&lt;sup&gt;1&lt;/sup&gt;&lt;/span&gt;"><strong>(2.74,12.6]</strong>, N = 835<span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>1</sup></span></th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Race and Ethnicity</td>
+<td headers="stat_0_1" class="gt_row gt_center"><br /></td>
+<td headers="stat_1_2" class="gt_row gt_center"><br /></td>
+<td headers="stat_2_2" class="gt_row gt_center"><br /></td>
+<td headers="stat_3_2" class="gt_row gt_center"><br /></td>
+<td headers="stat_4_2" class="gt_row gt_center"><br /></td></tr>
+    <tr><td headers="label" class="gt_row gt_left">American Indian or Alaskan Native</td>
+<td headers="stat_0_1" class="gt_row gt_center">31 (1.0%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">10 (32.3%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">6 (19.4%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">8 (25.8%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">7 (22.6%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">Asian</td>
+<td headers="stat_0_1" class="gt_row gt_center">527 (16.2%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">86 (16.3%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">130 (24.7%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">230 (43.6%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">81 (15.4%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">Black or African American</td>
+<td headers="stat_0_1" class="gt_row gt_center">162 (5.0%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">44 (27.2%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">44 (27.2%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">45 (27.8%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">29 (17.9%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">Hispanic or Latino</td>
+<td headers="stat_0_1" class="gt_row gt_center">1,540 (47.3%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">509 (33.1%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">446 (29.0%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">329 (21.4%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">256 (16.6%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">Native Hawaiian or Pacific Islander</td>
+<td headers="stat_0_1" class="gt_row gt_center">107 (3.3%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">19 (17.8%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">41 (38.3%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">28 (26.2%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">19 (17.8%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">White</td>
+<td headers="stat_0_1" class="gt_row gt_center">509 (15.6%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">61 (12.0%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">58 (11.4%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">97 (19.1%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">293 (57.6%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">Other</td>
+<td headers="stat_0_1" class="gt_row gt_center">186 (5.7%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">35 (18.8%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">47 (25.3%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">49 (26.3%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">55 (29.6%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">Multiracial/multiethnic</td>
+<td headers="stat_0_1" class="gt_row gt_center">197 (6.0%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">44 (22.3%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">46 (23.4%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">36 (18.3%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">71 (36.0%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">Missing</td>
+<td headers="stat_0_1" class="gt_row gt_center">82</td>
+<td headers="stat_1_2" class="gt_row gt_center">30</td>
+<td headers="stat_2_2" class="gt_row gt_center">15</td>
+<td headers="stat_3_2" class="gt_row gt_center">13</td>
+<td headers="stat_4_2" class="gt_row gt_center">24</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Highest Parental Educational Attainment</td>
+<td headers="stat_0_1" class="gt_row gt_center"><br /></td>
+<td headers="stat_1_2" class="gt_row gt_center"><br /></td>
+<td headers="stat_2_2" class="gt_row gt_center"><br /></td>
+<td headers="stat_3_2" class="gt_row gt_center"><br /></td>
+<td headers="stat_4_2" class="gt_row gt_center"><br /></td></tr>
+    <tr><td headers="label" class="gt_row gt_left">Less than high school degree</td>
+<td headers="stat_0_1" class="gt_row gt_center">380 (13.2%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">144 (37.9%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">122 (32.1%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">71 (18.7%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">43 (11.3%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">High school degree</td>
+<td headers="stat_0_1" class="gt_row gt_center">483 (16.8%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">148 (30.6%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">130 (26.9%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">105 (21.7%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">100 (20.7%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">Some college</td>
+<td headers="stat_0_1" class="gt_row gt_center">564 (19.6%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">166 (29.4%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">135 (23.9%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">131 (23.2%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">132 (23.4%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">College degree or more</td>
+<td headers="stat_0_1" class="gt_row gt_center">1,456 (50.5%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">233 (16.0%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">323 (22.2%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">420 (28.8%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">480 (33.0%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">Missing</td>
+<td headers="stat_0_1" class="gt_row gt_center">458</td>
+<td headers="stat_1_2" class="gt_row gt_center">147</td>
+<td headers="stat_2_2" class="gt_row gt_center">123</td>
+<td headers="stat_3_2" class="gt_row gt_center">108</td>
+<td headers="stat_4_2" class="gt_row gt_center">80</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Free/Reduced Lunch</td>
+<td headers="stat_0_1" class="gt_row gt_center"><br /></td>
+<td headers="stat_1_2" class="gt_row gt_center"><br /></td>
+<td headers="stat_2_2" class="gt_row gt_center"><br /></td>
+<td headers="stat_3_2" class="gt_row gt_center"><br /></td>
+<td headers="stat_4_2" class="gt_row gt_center"><br /></td></tr>
+    <tr><td headers="label" class="gt_row gt_left">Free lunch</td>
+<td headers="stat_0_1" class="gt_row gt_center">1,167 (41.9%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">415 (35.6%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">380 (32.6%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">235 (20.1%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">137 (11.7%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">Reduced-cost lunch</td>
+<td headers="stat_0_1" class="gt_row gt_center">186 (6.7%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">46 (24.7%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">42 (22.6%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">54 (29.0%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">44 (23.7%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">No assistance</td>
+<td headers="stat_0_1" class="gt_row gt_center">1,433 (51.4%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">222 (15.5%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">283 (19.7%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">431 (30.1%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">497 (34.7%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">Missing</td>
+<td headers="stat_0_1" class="gt_row gt_center">555</td>
+<td headers="stat_1_2" class="gt_row gt_center">155</td>
+<td headers="stat_2_2" class="gt_row gt_center">128</td>
+<td headers="stat_3_2" class="gt_row gt_center">115</td>
+<td headers="stat_4_2" class="gt_row gt_center">157</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Depression Trajectory Classes</td>
+<td headers="stat_0_1" class="gt_row gt_center"><br /></td>
+<td headers="stat_1_2" class="gt_row gt_center"><br /></td>
+<td headers="stat_2_2" class="gt_row gt_center"><br /></td>
+<td headers="stat_3_2" class="gt_row gt_center"><br /></td>
+<td headers="stat_4_2" class="gt_row gt_center"><br /></td></tr>
+    <tr><td headers="label" class="gt_row gt_left">Female - Low, Stable</td>
+<td headers="stat_0_1" class="gt_row gt_center">629 (18.8%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">141 (22.4%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">135 (21.5%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">176 (28.0%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">177 (28.1%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">Female - Mild, Stable</td>
+<td headers="stat_0_1" class="gt_row gt_center">765 (22.9%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">201 (26.3%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">213 (27.8%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">179 (23.4%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">172 (22.5%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">Female - Moderate, Decreasing</td>
+<td headers="stat_0_1" class="gt_row gt_center">291 (8.7%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">69 (23.7%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">82 (28.2%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">74 (25.4%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">66 (22.7%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">Female - High, Arching</td>
+<td headers="stat_0_1" class="gt_row gt_center">107 (3.2%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">27 (25.2%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">28 (26.2%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">26 (24.3%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">26 (24.3%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">Male - Low, Stable</td>
+<td headers="stat_0_1" class="gt_row gt_center">761 (22.8%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">196 (25.8%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">171 (22.5%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">199 (26.1%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">195 (25.6%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">Male - Mild, Increasing</td>
+<td headers="stat_0_1" class="gt_row gt_center">538 (16.1%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">138 (25.7%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">140 (26.0%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">117 (21.7%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">143 (26.6%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">Male - Moderate, Decreasing</td>
+<td headers="stat_0_1" class="gt_row gt_center">189 (5.7%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">49 (25.9%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">48 (25.4%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">50 (26.5%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">42 (22.2%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left">Male - High, Increasing</td>
+<td headers="stat_0_1" class="gt_row gt_center">61 (1.8%)</td>
+<td headers="stat_1_2" class="gt_row gt_center">17 (27.9%)</td>
+<td headers="stat_2_2" class="gt_row gt_center">16 (26.2%)</td>
+<td headers="stat_3_2" class="gt_row gt_center">14 (23.0%)</td>
+<td headers="stat_4_2" class="gt_row gt_center">14 (23.0%)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Nb (500m) Comp, AI/AN (%)</td>
+<td headers="stat_0_1" class="gt_row gt_center">0.2 (0.0, 0.4)</td>
+<td headers="stat_1_2" class="gt_row gt_center">0.0 (0.0, 0.3)</td>
+<td headers="stat_2_2" class="gt_row gt_center">0.2 (0.0, 0.3)</td>
+<td headers="stat_3_2" class="gt_row gt_center">0.2 (0.0, 0.4)</td>
+<td headers="stat_4_2" class="gt_row gt_center">0.2 (0.0, 0.5)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Nb (500m) Comp, Asian (%)</td>
+<td headers="stat_0_1" class="gt_row gt_center">13.1 (9.1, 28.5)</td>
+<td headers="stat_1_2" class="gt_row gt_center">12.3 (9.4, 20.5)</td>
+<td headers="stat_2_2" class="gt_row gt_center">19.5 (11.6, 32.3)</td>
+<td headers="stat_3_2" class="gt_row gt_center">19.4 (10.8, 59.6)</td>
+<td headers="stat_4_2" class="gt_row gt_center">9.4 (7.8, 13.0)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Nb (500m) Comp, Black (%)</td>
+<td headers="stat_0_1" class="gt_row gt_center">3.0 (1.7, 5.9)</td>
+<td headers="stat_1_2" class="gt_row gt_center">3.7 (2.0, 5.9)</td>
+<td headers="stat_2_2" class="gt_row gt_center">4.0 (2.2, 7.2)</td>
+<td headers="stat_3_2" class="gt_row gt_center">3.5 (2.0, 6.6)</td>
+<td headers="stat_4_2" class="gt_row gt_center">1.8 (1.0, 3.1)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Nb (500m) Comp, Hispanic (%)</td>
+<td headers="stat_0_1" class="gt_row gt_center">43.9 (24.2, 66.2)</td>
+<td headers="stat_1_2" class="gt_row gt_center">65.5 (49.1, 71.0)</td>
+<td headers="stat_2_2" class="gt_row gt_center">49.2 (35.8, 69.1)</td>
+<td headers="stat_3_2" class="gt_row gt_center">34.2 (13.2, 60.8)</td>
+<td headers="stat_4_2" class="gt_row gt_center">27.1 (20.8, 35.8)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Nb (500m) Comp, NH/PI (%)</td>
+<td headers="stat_0_1" class="gt_row gt_center">0.0 (0.0, 0.2)</td>
+<td headers="stat_1_2" class="gt_row gt_center">0.0 (0.0, 0.1)</td>
+<td headers="stat_2_2" class="gt_row gt_center">0.0 (0.0, 0.3)</td>
+<td headers="stat_3_2" class="gt_row gt_center">0.0 (0.0, 0.2)</td>
+<td headers="stat_4_2" class="gt_row gt_center">0.0 (0.0, 0.1)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Nb (500m) Comp, White (%)</td>
+<td headers="stat_0_1" class="gt_row gt_center">18.4 (12.6, 37.3)</td>
+<td headers="stat_1_2" class="gt_row gt_center">13.5 (10.4, 21.8)</td>
+<td headers="stat_2_2" class="gt_row gt_center">15.7 (10.3, 21.0)</td>
+<td headers="stat_3_2" class="gt_row gt_center">15.9 (13.6, 31.2)</td>
+<td headers="stat_4_2" class="gt_row gt_center">53.5 (39.5, 61.9)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Nb (500m) Comp, Other (%)</td>
+<td headers="stat_0_1" class="gt_row gt_center">0.1 (0.0, 0.5)</td>
+<td headers="stat_1_2" class="gt_row gt_center">0.1 (0.0, 0.5)</td>
+<td headers="stat_2_2" class="gt_row gt_center">0.2 (0.0, 0.5)</td>
+<td headers="stat_3_2" class="gt_row gt_center">0.1 (0.0, 0.6)</td>
+<td headers="stat_4_2" class="gt_row gt_center">0.1 (0.0, 0.4)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Nb (500m) Comp, Multiracial (%)</td>
+<td headers="stat_0_1" class="gt_row gt_center">1.6 (0.8, 2.7)</td>
+<td headers="stat_1_2" class="gt_row gt_center">1.0 (0.5, 1.8)</td>
+<td headers="stat_2_2" class="gt_row gt_center">1.3 (0.7, 2.1)</td>
+<td headers="stat_3_2" class="gt_row gt_center">1.7 (1.1, 2.7)</td>
+<td headers="stat_4_2" class="gt_row gt_center">3.0 (1.6, 4.0)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Nb (500m) Median Household Income ($, per 1,000)</td>
+<td headers="stat_0_1" class="gt_row gt_center">66.8 (58.2, 81.6)</td>
+<td headers="stat_1_2" class="gt_row gt_center">60.2 (48.9, 64.3)</td>
+<td headers="stat_2_2" class="gt_row gt_center">64.0 (56.0, 77.3)</td>
+<td headers="stat_3_2" class="gt_row gt_center">76.0 (59.2, 90.5)</td>
+<td headers="stat_4_2" class="gt_row gt_center">75.0 (66.0, 88.7)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Nb (500m) Total Crime Index</td>
+<td headers="stat_0_1" class="gt_row gt_center">84 (59, 113)</td>
+<td headers="stat_1_2" class="gt_row gt_center">99 (78, 126)</td>
+<td headers="stat_2_2" class="gt_row gt_center">79 (57, 114)</td>
+<td headers="stat_3_2" class="gt_row gt_center">77 (54, 98)</td>
+<td headers="stat_4_2" class="gt_row gt_center">83 (52, 110)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Nb (1000m) Comp, AI/AN (%)</td>
+<td headers="stat_0_1" class="gt_row gt_center">0.2 (0.1, 0.4)</td>
+<td headers="stat_1_2" class="gt_row gt_center">0.1 (0.1, 0.3)</td>
+<td headers="stat_2_2" class="gt_row gt_center">0.2 (0.1, 0.3)</td>
+<td headers="stat_3_2" class="gt_row gt_center">0.2 (0.1, 0.4)</td>
+<td headers="stat_4_2" class="gt_row gt_center">0.3 (0.1, 0.5)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Nb (1000m) Comp, Asian (%)</td>
+<td headers="stat_0_1" class="gt_row gt_center">13.5 (10.1, 29.5)</td>
+<td headers="stat_1_2" class="gt_row gt_center">12.2 (10.6, 19.0)</td>
+<td headers="stat_2_2" class="gt_row gt_center">21.9 (13.2, 32.4)</td>
+<td headers="stat_3_2" class="gt_row gt_center">21.1 (11.5, 56.0)</td>
+<td headers="stat_4_2" class="gt_row gt_center">9.8 (8.0, 12.4)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Nb (1000m) Comp, Black (%)</td>
+<td headers="stat_0_1" class="gt_row gt_center">3.5 (2.1, 5.7)</td>
+<td headers="stat_1_2" class="gt_row gt_center">4.2 (2.5, 5.6)</td>
+<td headers="stat_2_2" class="gt_row gt_center">4.6 (2.6, 6.9)</td>
+<td headers="stat_3_2" class="gt_row gt_center">3.8 (2.3, 6.1)</td>
+<td headers="stat_4_2" class="gt_row gt_center">2.1 (1.1, 3.3)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Nb (1000m) Comp, Hispanic (%)</td>
+<td headers="stat_0_1" class="gt_row gt_center">42.6 (25.8, 64.6)</td>
+<td headers="stat_1_2" class="gt_row gt_center">64.6 (49.7, 70.3)</td>
+<td headers="stat_2_2" class="gt_row gt_center">48.5 (37.7, 63.9)</td>
+<td headers="stat_3_2" class="gt_row gt_center">37.4 (16.6, 61.9)</td>
+<td headers="stat_4_2" class="gt_row gt_center">28.2 (21.9, 36.0)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Nb (1000m) Comp, NH/PI (%)</td>
+<td headers="stat_0_1" class="gt_row gt_center">0.1 (0.0, 0.3)</td>
+<td headers="stat_1_2" class="gt_row gt_center">0.1 (0.0, 0.2)</td>
+<td headers="stat_2_2" class="gt_row gt_center">0.2 (0.0, 0.4)</td>
+<td headers="stat_3_2" class="gt_row gt_center">0.1 (0.0, 0.3)</td>
+<td headers="stat_4_2" class="gt_row gt_center">0.0 (0.0, 0.2)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Nb (1000m) Comp, White (%)</td>
+<td headers="stat_0_1" class="gt_row gt_center">18.5 (13.0, 38.3)</td>
+<td headers="stat_1_2" class="gt_row gt_center">13.5 (10.8, 21.8)</td>
+<td headers="stat_2_2" class="gt_row gt_center">16.6 (11.5, 21.6)</td>
+<td headers="stat_3_2" class="gt_row gt_center">16.2 (14.2, 31.4)</td>
+<td headers="stat_4_2" class="gt_row gt_center">52.3 (39.2, 61.0)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Nb (1000m) Comp, Other (%)</td>
+<td headers="stat_0_1" class="gt_row gt_center">0.2 (0.1, 0.5)</td>
+<td headers="stat_1_2" class="gt_row gt_center">0.2 (0.1, 0.4)</td>
+<td headers="stat_2_2" class="gt_row gt_center">0.3 (0.1, 0.5)</td>
+<td headers="stat_3_2" class="gt_row gt_center">0.3 (0.0, 0.6)</td>
+<td headers="stat_4_2" class="gt_row gt_center">0.2 (0.1, 0.5)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Nb (1000m) Comp, Multiracial (%)</td>
+<td headers="stat_0_1" class="gt_row gt_center">1.8 (1.2, 2.4)</td>
+<td headers="stat_1_2" class="gt_row gt_center">1.3 (0.7, 1.7)</td>
+<td headers="stat_2_2" class="gt_row gt_center">1.5 (1.1, 2.0)</td>
+<td headers="stat_3_2" class="gt_row gt_center">1.9 (1.3, 2.3)</td>
+<td headers="stat_4_2" class="gt_row gt_center">2.8 (2.0, 3.6)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Nb (1000m) Median Household Income ($, per 1,000)</td>
+<td headers="stat_0_1" class="gt_row gt_center">66.8 (58.2, 81.6)</td>
+<td headers="stat_1_2" class="gt_row gt_center">60.2 (48.9, 64.3)</td>
+<td headers="stat_2_2" class="gt_row gt_center">64.0 (56.0, 77.3)</td>
+<td headers="stat_3_2" class="gt_row gt_center">76.0 (59.2, 90.5)</td>
+<td headers="stat_4_2" class="gt_row gt_center">75.0 (66.0, 88.7)</td></tr>
+    <tr><td headers="label" class="gt_row gt_left" style="font-weight: bold;">Nb (1000m) Total Crime Index</td>
+<td headers="stat_0_1" class="gt_row gt_center">90 (68, 110)</td>
+<td headers="stat_1_2" class="gt_row gt_center">106 (92, 121)</td>
+<td headers="stat_2_2" class="gt_row gt_center">87 (70, 114)</td>
+<td headers="stat_3_2" class="gt_row gt_center">79 (62, 97)</td>
+<td headers="stat_4_2" class="gt_row gt_center">83 (56, 105)</td></tr>
+  </tbody>
+  
+  <tfoot class="gt_footnotes">
+    <tr>
+      <td class="gt_footnote" colspan="6"><span class="gt_footnote_marks" style="white-space:nowrap;font-style:italic;font-weight:normal;"><sup>1</sup></span> n (%); Median (IQR)</td>
+    </tr>
+  </tfoot>
+</table>
+</div>
+</body>
+</html>

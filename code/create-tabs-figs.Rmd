@@ -1,0 +1,45 @@
+---
+title: "Create Tables and Figures"
+author: "Stephen Uong; Contributors: Andrew Rundle, Kerry Keyes, Nadav Sprague"
+date: "12/31/2024"
+output: rmarkdown::github_document
+
+---
+
+
+# 1. Set Working Directory
+
+Set the working directory to one folder up from the RMarkdown file for later data export.
+
+```{r setup}
+knitr::opts_knit$set(root.dir = '..') 
+```
+
+
+# 2. Load Required Libraries
+
+Load the following required libraries.
+
+```{r libraries}
+library(tidyverse)
+library(rio)
+library(janitor)
+```
+
+
+# 3. Import Data
+
+Import the following data:
+
+- Data Source 1
+
+- Data Source 2
+
+```{r import_data}
+df <- import('raw/______')
+```
+
+
+
+
+

@@ -1,0 +1,12 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+code/archive
+data
+comms/manuscript
+comms/figures/archive
+comms/figures/misc
+comms/tables/archive
+comms/tables/misc
+docs/archive

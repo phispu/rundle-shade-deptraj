@@ -1,0 +1,2154 @@
+---
+title: "FINAL LG CODE"
+author: "Catherine Gimbrone"
+date: "2023-03-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(gganimate)
+library(hrbrthemes)
+library(tidyverse)
+library(haven)
+library(janitor)
+library(MplusAutomation)
+library(rhdf5)
+library(here)
+library(kableExtra)
+library(gtsummary)
+library(semPlot)
+library(fs)
+library(naniar)
+library(Hmisc)
+library(nnet)
+library(broom)
+library(knitr)
+library(stats)
+library(EFAutilities)
+library(psych)
+library(skimr)
+library(irr)
+#library(furniture)
+library(table1)
+```
+
+
+# RUNNING MPLUS CODE THROUGH R
+GUIDE: https://garberadamc.github.io/project-site/Lab6-growth-models
+
+################
+### MDD LCGA ### *MOST CURRENT ANALYSES*
+################
+*MODELS CODED IN MPLUS*
+
+## SAVING DATA ##
+#################
+*DO NOT NEED TO RUN*
+
+# RUN FIRST
+```{r}
+shade_dat_raw <- read_csv("/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/Data/HH_W1_to_W8_Scored_080917.csv") %>%
+  clean_names()
+
+lgca_shade_dat_raw <- shade_dat_raw %>%
+  dplyr::select(sid,gender,
+                w1_cesd_1:w1_cesd_20,
+                w2_cesd_1:w2_cesd_20,
+                w3_cesd_1:w3_cesd_20,
+                w4_cesd_1:w4_cesd_20,
+                w5_cesd_1:w5_cesd_20,
+                w6_cesd_1:w6_cesd_20,
+                w7_cesd_1:w7_cesd_20,
+                w8_cesd_1:w8_cesd_20) %>%
+  mutate(w1_cesd_4 = 3 - w1_cesd_4,
+         w1_cesd_8 = 3 - w1_cesd_8,
+         w1_cesd_12 = 3 - w1_cesd_12,
+         w1_cesd_16 = 3 - w1_cesd_16,
+         
+         w2_cesd_4 = 3 - w2_cesd_4,
+         w2_cesd_8 = 3 - w2_cesd_8,
+         w2_cesd_12 = 3 - w2_cesd_12,
+         w2_cesd_16 = 3 - w2_cesd_16,
+         
+         w3_cesd_4 = 3 - w3_cesd_4,
+         w3_cesd_8 = 3 - w3_cesd_8,
+         w3_cesd_12 = 3 - w3_cesd_12,
+         w3_cesd_16 = 3 - w3_cesd_16,
+         
+         w4_cesd_4 = 3 - w4_cesd_4,
+         w4_cesd_8 = 3 - w4_cesd_8,
+         w4_cesd_12 = 3 - w4_cesd_12,
+         w4_cesd_16 = 3 - w4_cesd_16,
+         
+         w5_cesd_4 = 3 - w5_cesd_4,
+         w5_cesd_8 = 3 - w5_cesd_8,
+         w5_cesd_12 = 3 - w5_cesd_12,
+         w5_cesd_16 = 3 - w5_cesd_16,
+         
+         w6_cesd_4 = 3 - w6_cesd_4,
+         w6_cesd_8 = 3 - w6_cesd_8,
+         w6_cesd_12 = 3 - w6_cesd_12,
+         w6_cesd_16 = 3 - w6_cesd_16,
+         
+         w7_cesd_4 = 3 - w7_cesd_4,
+         w7_cesd_8 = 3 - w7_cesd_8,
+         w7_cesd_12 = 3 - w7_cesd_12,
+         w7_cesd_16 = 3 - w7_cesd_16,
+         
+         w8_cesd_4 = 3 - w8_cesd_4,
+         w8_cesd_8 = 3 - w8_cesd_8,
+         w8_cesd_12 = 3 - w8_cesd_12,
+         w8_cesd_16 = 3 - w8_cesd_16)
+```
+
+# ONLY 2 MISSING CESD -- Making & saving datasets for LCGA models in Mplus 
+```{r}
+shade_dat_raw <- read_csv("/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/Data/HH_W1_to_W8_Scored_080917.csv") %>%
+  clean_names()
+
+lgca_shade_dat_raw <- lgca_shade_dat_raw %>%
+  rowwise() %>%
+  mutate(w1_sum_cesd = rowMeans(across(w1_cesd_1:w1_cesd_20), na.rm = TRUE)*20,
+         w2_sum_cesd = rowMeans(across(w2_cesd_1:w2_cesd_20), na.rm = TRUE)*20,
+         w3_sum_cesd = rowMeans(across(w3_cesd_1:w3_cesd_20), na.rm = TRUE)*20,
+         w4_sum_cesd = rowMeans(across(w4_cesd_1:w4_cesd_20), na.rm = TRUE)*20,
+         w5_sum_cesd = rowMeans(across(w5_cesd_1:w5_cesd_20), na.rm = TRUE)*20,
+         w6_sum_cesd = rowMeans(across(w6_cesd_1:w6_cesd_20), na.rm = TRUE)*20,
+         w7_sum_cesd = rowMeans(across(w7_cesd_1:w7_cesd_20), na.rm = TRUE)*20,
+         w8_sum_cesd = rowMeans(across(w8_cesd_1:w8_cesd_20), na.rm = TRUE)*20,
+         w1_sum_cesd = if_else(rowSums(is.na(across(w1_cesd_1:w1_cesd_20))) <= 2,w1_sum_cesd,NA_real_),
+         w2_sum_cesd = if_else(rowSums(is.na(across(w2_cesd_1:w2_cesd_20))) <= 2,w2_sum_cesd,NA_real_),
+         w3_sum_cesd = if_else(rowSums(is.na(across(w3_cesd_1:w3_cesd_20))) <= 2,w3_sum_cesd,NA_real_),
+         w4_sum_cesd = if_else(rowSums(is.na(across(w4_cesd_1:w4_cesd_20))) <= 2,w4_sum_cesd,NA_real_),
+         w5_sum_cesd = if_else(rowSums(is.na(across(w5_cesd_1:w5_cesd_20))) <= 2,w5_sum_cesd,NA_real_),
+         w6_sum_cesd = if_else(rowSums(is.na(across(w6_cesd_1:w6_cesd_20))) <= 2,w6_sum_cesd,NA_real_),
+         w7_sum_cesd = if_else(rowSums(is.na(across(w7_cesd_1:w7_cesd_20))) <= 2,w7_sum_cesd,NA_real_),
+         w8_sum_cesd = if_else(rowSums(is.na(across(w8_cesd_1:w8_cesd_20))) <= 2,w8_sum_cesd,NA_real_),
+         ) %>%
+  select(sid, gender, w1_sum_cesd, w2_sum_cesd, w3_sum_cesd,w4_sum_cesd,w5_sum_cesd,w6_sum_cesd,w7_sum_cesd,w8_sum_cesd) %>%
+  arrange(sid) %>%
+  mutate(across(everything(), ~replace_na(.x, -99)))
+
+write_csv(lgca_shade_dat_raw,"/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/Data/Mplus LGCA/OG Files/lgca_sum_cesd2.csv")
+
+```
+
+# ONLY 2 MISSING CESD  --  PULLING & SAVING DATA FROM FINAL MODEL (CESD QUAD SUM 4 CLASS) MULTI GROUP ANALYSIS BY GENDER
+*run code for M&M supporting functions first*
+```{r}
+waves <- c(1:8)
+
+# Pulling mean values per group & class
+cesd_mean_est_gen <- as.data.frame(mplus.get.estimated_means("/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/SHADE MPlus/LCGA/1LGCA Sum/~Multi-Group Analysis/Outputs/4 Class solution/Full model CESD 2/LCGA_MG_QUAD_CESD_4_2MISS.gh5")) %>%  #pulling the estimated values
+  mutate(wave = waves,
+         wave = case_when(wave == 1 ~ "cesd_w1",
+                          wave == 2 ~ "cesd_w2",
+                          wave == 3 ~ "cesd_w3",
+                          wave == 4 ~ "cesd_w4",
+                          wave == 5 ~ "cesd_w5",
+                          wave == 6 ~ "cesd_w6",
+                          wave == 7 ~ "cesd_w7",
+                          wave == 8 ~ "cesd_w8"))
+
+write.csv(cesd_mean_est_gen,"/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/SHADE MPlus/LCGA/1LGCA Sum/~Multi-Group Analysis/Outputs/4 Class solution/Full model CESD 2/LCGA_QUAD_CESD_4_EstMean_gen_2MISS.csv")
+
+# Pulling predicted class probabilities
+cesd_cp_mod_gen <- readModels("/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/SHADE MPlus/LCGA/1LGCA Sum/~Multi-Group Analysis/Outputs/4 Class solution/Full model CESD 2/LCGA_MG_QUAD_CESD_4_2MISS.out", what = "savedata")
+
+# Converting to df
+cesd_cp_gen <- cesd_cp_mod_gen[["savedata"]] %>%
+  clean_names() %>%
+  dplyr:: select(sid, gender, c) %>%
+  rename(class = c) %>%
+  dplyr::select(sid, gender, class)
+
+write.csv(cesd_cp_gen,"/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/SHADE MPlus/LCGA/1LGCA Sum/~Multi-Group Analysis/Outputs/4 Class solution/Full model CESD 2/LCGA_QUAD_CESD_4_PCP_gen_2MISS.csv")
+
+```
+
+
+#### CC AS SENSITIVITY ANALYSIS ####
+
+# COMPLETE CASE ANALYSIS FOR FIML -- Making & saving datasets for LCGA models in Mplus 
+```{r}
+
+lgca_shade_dat_raw <- lgca_shade_dat_raw  %>% 
+  rowwise() %>%
+  mutate(sum_w1_cesd = sum(c_across(w1_cesd_1:w1_cesd_20)),
+         sum_w2_cesd = sum(c_across(w2_cesd_1:w2_cesd_20)),
+         sum_w3_cesd = sum(c_across(w3_cesd_1:w3_cesd_20)),
+         sum_w4_cesd = sum(c_across(w4_cesd_1:w4_cesd_20)),
+         sum_w5_cesd = sum(c_across(w5_cesd_1:w5_cesd_20)),
+         sum_w6_cesd = sum(c_across(w6_cesd_1:w6_cesd_20)),
+         sum_w7_cesd = sum(c_across(w7_cesd_1:w7_cesd_20)),
+         sum_w8_cesd = sum(c_across(w8_cesd_1:w8_cesd_20))) %>%
+  select(sid, gender, sum_w1_cesd, sum_w2_cesd, sum_w3_cesd, sum_w4_cesd,sum_w5_cesd,sum_w6_cesd,sum_w7_cesd,sum_w8_cesd) %>%
+  arrange(sid) %>%
+  mutate(across(everything(),~replace_na(.x, -99)))
+
+write_csv(lgca_shade_dat_raw,"/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/Data/Mplus LGCA/OG Files/lgca_sum_cc.csv")
+
+```
+
+# COMPLETE CASE ANALYSIS FOR FIML --  PULLING & SAVING DATA FROM FINAL MODEL (CESD QUAD SUM 4 CLASS) MULTI GROUP ANALYSIS BY GENDER
+*run code for M&M supporting functions first*
+```{r}
+waves <- c(1:8)
+
+# Pulling mean values per group & class
+cesd_mean_est_gen <- as.data.frame(mplus.get.estimated_means("/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/SHADE MPlus/LCGA/1LGCA Sum/~Multi-Group Analysis/Outputs/4 Class solution/Full model CC/CESD_4Q_MG_CC.gh5")) %>%  #pulling the estimated values
+  mutate(wave = waves,
+         wave = case_when(wave == 1 ~ "cesd_w1",
+                          wave == 2 ~ "cesd_w2",
+                          wave == 3 ~ "cesd_w3",
+                          wave == 4 ~ "cesd_w4",
+                          wave == 5 ~ "cesd_w5",
+                          wave == 6 ~ "cesd_w6",
+                          wave == 7 ~ "cesd_w7",
+                          wave == 8 ~ "cesd_w8"))
+
+write.csv(cesd_mean_est_gen,"/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/SHADE MPlus/LCGA/1LGCA Sum/~Multi-Group Analysis/Outputs/4 Class solution/Full model CC/LCGA_QUAD_CESD_4_EstMean_gen_CC.csv")
+
+# Pulling predicted class probabilities
+cesd_cp_mod_gen <- readModels("/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/SHADE MPlus/LCGA/1LGCA Sum/~Multi-Group Analysis/Outputs/4 Class solution/Full model CC/CESD_4Q_MG_CC.out", what = "savedata")
+
+# Converting to df
+cesd_cp_gen <- cesd_cp_mod_gen[["savedata"]] %>%
+  clean_names() %>%
+  dplyr:: select(sid, gender, c) %>%
+  rename(class = c) %>%
+  dplyr::select(sid, gender, class)
+
+write.csv(cesd_cp_gen,"/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/SHADE MPlus/LCGA/1LGCA Sum/~Multi-Group Analysis/Outputs/4 Class solution/Full model CC/LCGA_QUAD_CESD_4_PCP_gen_CC.csv")
+
+```
+
+## LOADING DATA ##
+##################
+
+## RUN FIRST ##
+```{r}
+shade_dat_raw <- read_csv("/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/Data/HH_W1_to_W8_Scored_080917.csv") %>%
+  clean_names()
+
+lgca_shade_dat_raw <- shade_dat_raw %>%
+  mutate(w1_cesd_4 = 3 - w1_cesd_4,
+         w1_cesd_8 = 3 - w1_cesd_8,
+         w1_cesd_12 = 3 - w1_cesd_12,
+         w1_cesd_16 = 3 - w1_cesd_16,
+         
+         w2_cesd_4 = 3 - w2_cesd_4,
+         w2_cesd_8 = 3 - w2_cesd_8,
+         w2_cesd_12 = 3 - w2_cesd_12,
+         w2_cesd_16 = 3 - w2_cesd_16,
+         
+         w3_cesd_4 = 3 - w3_cesd_4,
+         w3_cesd_8 = 3 - w3_cesd_8,
+         w3_cesd_12 = 3 - w3_cesd_12,
+         w3_cesd_16 = 3 - w3_cesd_16,
+         
+         w4_cesd_4 = 3 - w4_cesd_4,
+         w4_cesd_8 = 3 - w4_cesd_8,
+         w4_cesd_12 = 3 - w4_cesd_12,
+         w4_cesd_16 = 3 - w4_cesd_16,
+         
+         w5_cesd_4 = 3 - w5_cesd_4,
+         w5_cesd_8 = 3 - w5_cesd_8,
+         w5_cesd_12 = 3 - w5_cesd_12,
+         w5_cesd_16 = 3 - w5_cesd_16,
+         
+         w6_cesd_4 = 3 - w6_cesd_4,
+         w6_cesd_8 = 3 - w6_cesd_8,
+         w6_cesd_12 = 3 - w6_cesd_12,
+         w6_cesd_16 = 3 - w6_cesd_16,
+         
+         w7_cesd_4 = 3 - w7_cesd_4,
+         w7_cesd_8 = 3 - w7_cesd_8,
+         w7_cesd_12 = 3 - w7_cesd_12,
+         w7_cesd_16 = 3 - w7_cesd_16,
+         
+         w8_cesd_4 = 3 - w8_cesd_4,
+         w8_cesd_8 = 3 - w8_cesd_8,
+         w8_cesd_12 = 3 - w8_cesd_12,
+         w8_cesd_16 = 3 - w8_cesd_16)
+```
+
+## CC SENS DATA ##
+** RUN FOR SENSITIVITY ANALYSIS **
+```{r}
+# Predicted class probabilities
+cesd_cp_mod_cc <- read.csv("/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/SHADE MPlus/LCGA/1LGCA Sum/~Multi-Group Analysis/Outputs/4 Class solution/Full model CC/LCGA_QUAD_CESD_4_PCP_gen_CC.csv")
+  
+cesd4sum_cp_cc <- cesd_cp_mod_cc %>%   
+  dplyr::select(sid,class)
+
+waves <- c(1:8)
+
+# Mean estimates by class
+cesd_mean_est_cc <- read.csv("/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/SHADE MPlus/LCGA/1LGCA Sum/~Multi-Group Analysis/Outputs/4 Class solution/Full model CC/LCGA_QUAD_CESD_4_EstMean_gen_CC.csv") %>%  #pulling the estimated values
+  mutate(wave = waves,
+         wave = case_when(wave == 1 ~ "cesd_w1",
+                          wave == 2 ~ "cesd_w2",
+                          wave == 3 ~ "cesd_w3",
+                          wave == 4 ~ "cesd_w4",
+                          wave == 5 ~ "cesd_w5",
+                          wave == 6 ~ "cesd_w6",
+                          wave == 7 ~ "cesd_w7",
+                          wave == 8 ~ "cesd_w8"))
+
+# IDENTIFYING CLASSES
+class_dat_cc <- cesd_cp_mod_cc %>% 
+  clean_names() %>% 
+  dplyr:: select(gender, class) %>% 
+  unique()
+
+# Merging in class membership and probabilities 
+shade_dat_class_select_cc <- cesd_cp_mod_cc %>% 
+  clean_names() %>% 
+  dplyr:: select(sid, gender, class) %>% 
+  right_join(lgca_shade_dat_raw, by = c("sid","gender")) %>% 
+  rowwise() %>%
+  mutate(sum_w1_cesd = sum(c_across(w1_cesd_1:w1_cesd_20)),
+         sum_w2_cesd = sum(c_across(w2_cesd_1:w2_cesd_20)),
+         sum_w3_cesd = sum(c_across(w3_cesd_1:w3_cesd_20)),
+         sum_w4_cesd = sum(c_across(w4_cesd_1:w4_cesd_20)),
+         sum_w5_cesd = sum(c_across(w5_cesd_1:w5_cesd_20)),
+         sum_w6_cesd = sum(c_across(w6_cesd_1:w6_cesd_20)),
+         sum_w7_cesd = sum(c_across(w7_cesd_1:w7_cesd_20)),
+         sum_w8_cesd = sum(c_across(w8_cesd_1:w8_cesd_20))
+         ) %>% select(sid,gender,class,sum_w1_cesd, sum_w2_cesd, sum_w3_cesd, sum_w4_cesd,sum_w5_cesd,sum_w6_cesd,sum_w7_cesd,sum_w8_cesd)
+
+shade_dat_class_select_cc %>% group_by(gender,class) %>% summarise(n = n(), cesd_mean = mean(sum_w1_cesd, na.rm = TRUE))
+```
+
+## DATA FOR MGA MODELS ##
+```{r}
+# Predicted class probabilities
+cesd_cp_mod <- read.csv("/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/SHADE MPlus/LCGA/1LGCA Sum/~Multi-Group Analysis/Outputs/4 Class solution/Full model CESD 2/LCGA_QUAD_CESD_4_PCP_gen_2MISS.csv")
+  
+cesd4sum_cp <- cesd_cp_mod %>%   
+  dplyr::select(sid,class)
+
+waves <- c(1:8)
+
+# Mean estimates by class
+cesd_mean_est <- read.csv("/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/SHADE MPlus/LCGA/1LGCA Sum/~Multi-Group Analysis/Outputs/4 Class solution/Full model CESD 2/LCGA_QUAD_CESD_4_EstMean_gen_2MISS.csv") %>%  #pulling the estimated values
+  mutate(wave = waves,
+         wave = case_when(wave == 1 ~ "cesd_w1",
+                          wave == 2 ~ "cesd_w2",
+                          wave == 3 ~ "cesd_w3",
+                          wave == 4 ~ "cesd_w4",
+                          wave == 5 ~ "cesd_w5",
+                          wave == 6 ~ "cesd_w6",
+                          wave == 7 ~ "cesd_w7",
+                          wave == 8 ~ "cesd_w8"))
+
+```
+
+# MERGING DATA ON PREDICTED CLASS MEMBERSHIP (PCM) & SELECTING VARIABLES OF INTEREST
+*Consolidating race/ethnicity*
+*Consolidating parental edu & lunch (new as of 4/21/22)*
+```{r}
+# IDENTIFYING CLASSES
+class_dat <- cesd_cp_mod %>% 
+  clean_names() %>% 
+  dplyr:: select(gender, class) %>% 
+  unique()
+
+#view(class_dat)
+
+# Merging in class membership and probabilities 
+shade_dat_class_select <- cesd_cp_mod %>% 
+  clean_names() %>% 
+  dplyr:: select(sid, gender, class) %>% 
+  right_join(lgca_shade_dat_raw, by = c("sid","gender")) %>% 
+  mutate(mga_class = case_when(class == 2 & gender == 0 ~ "Female - Mild, Stable",
+                          class == 3 & gender == 0 ~ "Female - Moderate, Decreasing",
+                          class == 1 & gender == 0 ~ "Female - High, Arching",
+                          class == 4 & gender == 0 ~ "Female - Low, Stable",
+                          class == 2 & gender == 1 ~ "Male - Low, Stable",
+                          class == 3 & gender == 1 ~ "Male - Moderate, Decreasing",
+                          class == 1 & gender == 1 ~ "Male - High, Increasing",
+                          class == 4 & gender == 1 ~ "Male - Mild, Increasing"),
+         mga_class = as.factor(mga_class),
+         w1_dem_ethnicity_og = w1_dem_ethnicity, # original race/ethnicity variable
+         w1_dem_ethnicity = if_else(w1_dem_ethnicity == 1 | # race/ethnicity re-coded so that AI/AN & NH/PI & OTHER are combined due to small sample sizes
+                                 w1_dem_ethnicity ==5 |
+                                 w1_dem_ethnicity == 7, 0, w1_dem_ethnicity),
+         w1_dem_high_par_edu = case_when(w1_dem_high_par_edu == 1 | w1_dem_high_par_edu == 2 ~ 1, #didn't finish HS
+                                          w1_dem_high_par_edu == 3 ~ 2, #HS
+                                          w1_dem_high_par_edu == 4 ~ 3,#some college
+                                          w1_dem_high_par_edu == 5 | w1_dem_high_par_edu == 6 ~ 4, #College or advanced degree
+                                          w1_dem_high_par_edu == 0 ~ 99),
+         w3_dem_lunch_og = w3_dem_lunch,
+         w3_dem_lunch = if_else(w3_dem_lunch == 1 | w3_dem_lunch == 2, 1,w3_dem_lunch)
+         ) %>%
+    rowwise() %>%
+  mutate(
+         w1_sum_cesd = rowMeans(across(w1_cesd_1:w1_cesd_20), na.rm = TRUE)*20,
+         w2_sum_cesd = rowMeans(across(w2_cesd_1:w2_cesd_20), na.rm = TRUE)*20,
+         w3_sum_cesd = rowMeans(across(w3_cesd_1:w3_cesd_20), na.rm = TRUE)*20,
+         w4_sum_cesd = rowMeans(across(w4_cesd_1:w4_cesd_20), na.rm = TRUE)*20,
+         w5_sum_cesd = rowMeans(across(w5_cesd_1:w5_cesd_20), na.rm = TRUE)*20,
+         w6_sum_cesd = rowMeans(across(w6_cesd_1:w6_cesd_20), na.rm = TRUE)*20,
+         w7_sum_cesd = rowMeans(across(w7_cesd_1:w7_cesd_20), na.rm = TRUE)*20,
+         w8_sum_cesd = rowMeans(across(w8_cesd_1:w8_cesd_20), na.rm = TRUE)*20,
+         w1_sum_cesd = if_else(rowSums(is.na(across(w1_cesd_1:w1_cesd_20))) <= 2,w1_sum_cesd,NA_real_),
+         w2_sum_cesd = if_else(rowSums(is.na(across(w2_cesd_1:w2_cesd_20))) <= 2,w2_sum_cesd,NA_real_),
+         w3_sum_cesd = if_else(rowSums(is.na(across(w3_cesd_1:w3_cesd_20))) <= 2,w3_sum_cesd,NA_real_),
+         w4_sum_cesd = if_else(rowSums(is.na(across(w4_cesd_1:w4_cesd_20))) <= 2,w4_sum_cesd,NA_real_),
+         w5_sum_cesd = if_else(rowSums(is.na(across(w5_cesd_1:w5_cesd_20))) <= 2,w5_sum_cesd,NA_real_),
+         w6_sum_cesd = if_else(rowSums(is.na(across(w6_cesd_1:w6_cesd_20))) <= 2,w6_sum_cesd,NA_real_),
+         w7_sum_cesd = if_else(rowSums(is.na(across(w7_cesd_1:w7_cesd_20))) <= 2,w7_sum_cesd,NA_real_),
+         w8_sum_cesd = if_else(rowSums(is.na(across(w8_cesd_1:w8_cesd_20))) <= 2,w8_sum_cesd,NA_real_)) %>% 
+  dplyr::select(sid,class,
+                contains("dem_ethnicity"),
+                contains("gender"), 
+                contains("dem_lunch"),
+                contains("dem_high_par_edu"),
+                contains("dem_lunch"),
+                w1_sum_cesd, w2_sum_cesd, w3_sum_cesd,w4_sum_cesd,w5_sum_cesd,w6_sum_cesd,w7_sum_cesd,w8_sum_cesd,
+                contains("dem_age_by_birth"))
+
+#glimpse(shade_dat_class_select)
+
+#Number per class
+shade_dat_class_select %>% group_by(gender,class)  %>% summarise(n = n())
+```
+
+$$ PUBLICATION - MISC. DESCRIPTIVES $$
+## CRONBACH'S ALPHA
+
+# Making DFs
+```{r}
+library(ltm)
+w1_ca <- shade_dat_class %>% dplyr::select(
+"w1_cesd_1",
+"w1_cesd_2",
+"w1_cesd_3",
+"w1_cesd_4",
+"w1_cesd_5",
+"w1_cesd_6",
+"w1_cesd_7",
+"w1_cesd_8",
+"w1_cesd_9",
+"w1_cesd_10",
+"w1_cesd_11",
+"w1_cesd_12",
+"w1_cesd_13",
+"w1_cesd_14",
+"w1_cesd_15",
+"w1_cesd_16",
+"w1_cesd_17",
+"w1_cesd_18",
+"w1_cesd_19",
+"w1_cesd_20") %>% drop_na()
+
+w2_ca <- shade_dat_class %>% dplyr::select(
+"w2_cesd_1",
+"w2_cesd_2",
+"w2_cesd_3",
+"w2_cesd_4",
+"w2_cesd_5",
+"w2_cesd_6",
+"w2_cesd_7",
+"w2_cesd_8",
+"w2_cesd_9",
+"w2_cesd_10",
+"w2_cesd_11",
+"w2_cesd_12",
+"w2_cesd_13",
+"w2_cesd_14",
+"w2_cesd_15",
+"w2_cesd_16",
+"w2_cesd_17",
+"w2_cesd_18",
+"w2_cesd_19",
+"w2_cesd_20")%>% drop_na()
+
+
+w3_ca <- shade_dat_class %>% dplyr::select(
+"w3_cesd_1",
+"w3_cesd_2",
+"w3_cesd_3",
+"w3_cesd_4",
+"w3_cesd_5",
+"w3_cesd_6",
+"w3_cesd_7",
+"w3_cesd_8",
+"w3_cesd_9",
+"w3_cesd_10",
+"w3_cesd_11",
+"w3_cesd_12",
+"w3_cesd_13",
+"w3_cesd_14",
+"w3_cesd_15",
+"w3_cesd_16",
+"w3_cesd_17",
+"w3_cesd_18",
+"w3_cesd_19",
+"w3_cesd_20")%>% drop_na()
+
+w4_ca <- shade_dat_class %>% dplyr::select(
+  "w4_cesd_1",
+"w4_cesd_2",
+"w4_cesd_3",
+"w4_cesd_4",
+"w4_cesd_5",
+"w4_cesd_6",
+"w4_cesd_7",
+"w4_cesd_8",
+"w4_cesd_9",
+"w4_cesd_10",
+"w4_cesd_11",
+"w4_cesd_12",
+"w4_cesd_13",
+"w4_cesd_14",
+"w4_cesd_15",
+"w4_cesd_16",
+"w4_cesd_17",
+"w4_cesd_18",
+"w4_cesd_19",
+"w4_cesd_20")%>% drop_na()
+
+w5_ca <- shade_dat_class %>% dplyr::select(
+"w5_cesd_1",
+"w5_cesd_2",
+"w5_cesd_3",
+"w5_cesd_4",
+"w5_cesd_5",
+"w5_cesd_6",
+"w5_cesd_7",
+"w5_cesd_8",
+"w5_cesd_9",
+"w5_cesd_10",
+"w5_cesd_11",
+"w5_cesd_12",
+"w5_cesd_13",
+"w5_cesd_14",
+"w5_cesd_15",
+"w5_cesd_16",
+"w5_cesd_17",
+"w5_cesd_18",
+"w5_cesd_19",
+"w5_cesd_20")%>% drop_na()
+
+w6_ca <- shade_dat_class %>% dplyr::select(
+"w6_cesd_1",
+"w6_cesd_2",
+"w6_cesd_3",
+"w6_cesd_4",
+"w6_cesd_5",
+"w6_cesd_6",
+"w6_cesd_7",
+"w6_cesd_8",
+"w6_cesd_9",
+"w6_cesd_10",
+"w6_cesd_11",
+"w6_cesd_12",
+"w6_cesd_13",
+"w6_cesd_14",
+"w6_cesd_15",
+"w6_cesd_16",
+"w6_cesd_17",
+"w6_cesd_18",
+"w6_cesd_19",
+"w6_cesd_20")%>% drop_na()
+
+w7_ca <- shade_dat_class %>% dplyr::select(
+"w7_cesd_1",
+"w7_cesd_2",
+"w7_cesd_3",
+"w7_cesd_4",
+"w7_cesd_5",
+"w7_cesd_6",
+"w7_cesd_7",
+"w7_cesd_8",
+"w7_cesd_9",
+"w7_cesd_10",
+"w7_cesd_11",
+"w7_cesd_12",
+"w7_cesd_13",
+"w7_cesd_14",
+"w7_cesd_15",
+"w7_cesd_16",
+"w7_cesd_17",
+"w7_cesd_18",
+"w7_cesd_19",
+"w7_cesd_20")%>% drop_na()
+
+w8_ca <- shade_dat_class %>% dplyr::select(
+"w8_cesd_1",
+"w8_cesd_2",
+"w8_cesd_3",
+"w8_cesd_4",
+"w8_cesd_5",
+"w8_cesd_6",
+"w8_cesd_7",
+"w8_cesd_8",
+"w8_cesd_9",
+"w8_cesd_10",
+"w8_cesd_11",
+"w8_cesd_12",
+"w8_cesd_13",
+"w8_cesd_14",
+"w8_cesd_15",
+"w8_cesd_16",
+"w8_cesd_17",
+"w8_cesd_18",
+"w8_cesd_19",
+"w8_cesd_20")%>% drop_na()
+```
+
+# Calculating Cronbach Alpha
+```{r}
+cronbach.alpha(w1_ca)
+cronbach.alpha(w2_ca)
+cronbach.alpha(w3_ca)
+cronbach.alpha(w4_ca)
+cronbach.alpha(w5_ca)
+cronbach.alpha(w6_ca)
+cronbach.alpha(w7_ca)
+cronbach.alpha(w8_ca)
+```
+
+## MISSINGNESS IN SAMPLE
+```{r}
+miss <- shade_dat_class_select %>% dplyr::select(contains("cesd"))
+  
+as_tibble(colSums(!is.na(miss))) %>% mutate(per_miss = (1-(value/3396))*100)
+```
+
+## RETENTION IN SAMPLE
+```{r}
+
+shade_dat_class %>% dplyr::select(sid, enrolled) %>% 
+  group_by(enrolled) %>% summarise(n=n())
+
+length(unique(shade_dat_class$sid))
+
+shade_dat_class %>% filter(is.na(enrolled))
+
+```
+
+## AGE DISTRIBUTION IN SAMPLE
+```{r}
+min(shade_dat_class_select$w1_dem_age_by_birth, na.rm = TRUE)
+mean(shade_dat_class_select$w1_dem_age_by_birth, na.rm = TRUE)
+max(shade_dat_class_select$w1_dem_age_by_birth, na.rm = TRUE)
+
+min(shade_dat_class_select$w8_dem_age_by_birth, na.rm = TRUE)
+mean(shade_dat_class_select$w8_dem_age_by_birth, na.rm = TRUE)
+max(shade_dat_class_select$w8_dem_age_by_birth, na.rm = TRUE)
+```
+
+$$ PUBLICATION-TABLE-3-AND-4 $$
+*Excludes individuals with no responses to any CESD scores across waves (i.e. CESD class is missing)*
+
+# Making dataset for table
+*Removing don't know categories*
+```{r, include=FALSE}
+library(dplyr)
+table_1_dat <- shade_dat_class_select %>% 
+    #replace_with_na_all(condition = ~.x == 99) %>% 
+  mutate(w1_dem_high_par_edu = as_factor(case_when(
+                             w1_dem_high_par_edu == 1 ~ "< High school degree",
+                             w1_dem_high_par_edu == 2 ~ "High school degree",
+                             w1_dem_high_par_edu == 3 ~ "Some college",
+                             w1_dem_high_par_edu == 4 ~ ">= College degree",
+                             w1_dem_high_par_edu == 99 ~ NA_character_)),
+        w1_dem_high_par_edu = fct_relevel(w1_dem_high_par_edu, "< High school degree", "High school degree","Some college",">= College degree"),
+        w3_dem_lunch = as_factor(case_when(w3_dem_lunch_og == 0 ~"No assistance",
+                                 w3_dem_lunch_og == 1 ~"Reduced lunch",
+                                 w3_dem_lunch_og == 2 ~"Free lunch",
+                                  w3_dem_lunch_og == 99 ~ NA_character_)),
+        w3_dem_lunch = fct_relevel(w3_dem_lunch, "Free lunch","Reduced lunch","No assistance"),
+        gender = as_factor(case_when(gender == 0 ~"Female",
+                             gender == 1 ~ "Male")),
+         w1_dem_ethnicity  = as_factor(case_when(
+                             w1_dem_ethnicity == 2 ~ "Asian",
+                             w1_dem_ethnicity == 3 ~ "Black or African American",
+                             w1_dem_ethnicity == 4 ~ "Hispanic or Latino",
+                             w1_dem_ethnicity == 6 ~ "White",
+                             w1_dem_ethnicity == 0 ~ "American Indian or Alaska Native, Native Hawaiian or Pacific Islander, Other",
+                             w1_dem_ethnicity == 8 ~ "Multiracial/ethnic")),
+        w1_dem_ethnicity = fct_relevel(w1_dem_ethnicity,"Asian","Black or African American","Hispanic or Latino", "White","American Indian or Alaska Native, Native Hawaiian or Pacific Islander, Other")
+         ) %>% 
+  dplyr::select(class, w1_dem_high_par_edu,w1_dem_ethnicity,gender,w3_dem_lunch,
+         contains("cesd")) %>% 
+  filter(!is.na(class)) 
+
+# relabeling variables
+label(table_1_dat$w1_dem_high_par_edu) <- "Parental education"
+label(table_1_dat$w1_dem_ethnicity) <- "Race/ethnicity"
+label(table_1_dat$gender) <- "Gender"
+label(table_1_dat$w3_dem_lunch) <- "Lunch assistance"
+label(table_1_dat$w1_dem_high_par_edu) <- "Parental education"
+label(table_1_dat$w1_sum_cesd) <- "CES-D Wave 1"
+label(table_1_dat$w2_sum_cesd) <- "CES-D Wave 2"
+label(table_1_dat$w3_sum_cesd) <- "CES-D Wave 3"
+label(table_1_dat$w4_sum_cesd) <- "CES-D Wave 4"
+label(table_1_dat$w5_sum_cesd) <- "CES-D Wave 5"
+label(table_1_dat$w6_sum_cesd) <- "CES-D Wave 6"
+label(table_1_dat$w7_sum_cesd) <- "CES-D Wave 7"
+label(table_1_dat$w8_sum_cesd) <- "CES-D Wave 8"
+
+```
+
+# ANOVA FOR CES-D SCORES BY SEX
+```{r}
+summary(aov(table_1_dat$w1_sum_cesd ~ table_1_dat$class*table_1_dat$gender, correct = FALSE))
+summary(aov(table_1_dat$w8_sum_cesd ~ table_1_dat$class*table_1_dat$gender, correct = FALSE))
+```
+
+# Function to add p-values to table
+```{r}
+pvalue <- function(x, ...) {
+  x <- x[-length(x)]  # Remove "overall" group
+  # Construct vectors of data y, and groups (strata) g
+  y <- unlist(x)
+  g <- factor(rep(1:length(x), times=sapply(x, length)))
+  if (is.numeric(y)) {
+    # For numeric variables, perform an ANOVA
+    p <- summary(aov(y ~ g))[[1]][["Pr(>F)"]][1]
+  } else {
+    # For categorical variables, perform a chi-squared test of independence
+    p <- chisq.test(table(y, g))$p.value
+  }
+  # Format the p-value, using an HTML entity for the less-than sign.
+  # The initial empty string places the output on the line below the variable label.
+  #c("", sub("<", "&lt;", format.pval(p, digits=3, eps=0.001)))
+}
+```
+
+# FOR FEMALES
+```{r}
+table_1_dat_fem <- table_1_dat %>% filter(gender == "Female") %>% 
+  mutate(class = case_when(class == 4 ~ "Low, Stable",
+                           class == 2 ~ "Mild, Stable",
+                           class == 1 ~ "High, Arching",
+                           class == 3 ~ "Moderate, Decreasing"),
+         class = fct_relevel(class, "Low, Stable","Mild, Stable","Moderate, Decreasing","High, Arching"))
+
+table1::table1(~ w1_dem_ethnicity + w1_dem_high_par_edu + w3_dem_lunch + w1_sum_cesd + w8_sum_cesd | class,
+               data = table_1_dat_fem, overall = "Total",
+       topclass="Rtable1-zebra", render.continuous = c(.="Mean (SD)"),
+       render.missing = NULL, render.categorical="FREQ (PCTnoNA%)", #removing missing categories
+       extra.col=list(`P-value`=pvalue)) 
+
+```
+
+# FOR MALES
+```{r}
+table_1_dat_male <- table_1_dat %>% filter(gender == "Male") %>% 
+  mutate(class = case_when(class == 2 ~ "Low, Stable",
+                           class == 4 ~ "Mild, Increasing",
+                           class == 1 ~ "High, Increasing",
+                           class == 3 ~ "Moderate, Decreasing"),
+         class = fct_relevel(class, "Low, Stable","Mild, Increasing","Moderate, Decreasing","High, Arching"))
+
+
+table1::table1(~ w1_dem_ethnicity + w1_dem_high_par_edu + w3_dem_lunch + w1_sum_cesd + w8_sum_cesd
+       | class,data = table_1_dat_male, overall = "Total",
+       topclass="Rtable1-zebra", render.continuous = c(.="Mean (SD)"),
+       render.missing = NULL, render.categorical="FREQ (PCTnoNA%)", #removing missing categories
+       extra.col=list(`P-value`=pvalue)
+       )
+```
+
+$$ PUBLICATION-SUP-TABLE-3 $$
+# TOTAL
+```{r}
+table1::table1(~ w1_dem_ethnicity + w1_dem_high_par_edu + w3_dem_lunch + w1_sum_cesd + w8_sum_cesd
+       | gender,data = table_1_dat, overall = "Total",
+       topclass="Rtable1-zebra", render.continuous = c(.="Mean (SD)"),
+       render.missing = NULL, render.categorical="FREQ (PCTnoNA%)", #removing missing categories
+       extra.col=list(`P-value`=pvalue)
+       )
+```
+
+# Double checking significance tests
+```{r}
+# Female 
+chisq.test(table_1_dat_fem$class, table_1_dat_fem$w1_dem_ethnicity, correct=FALSE)
+chisq.test(table_1_dat_fem$class, table_1_dat_fem$w1_dem_high_par_edu, correct=FALSE)
+chisq.test(table_1_dat_fem$class, table_1_dat_fem$w3_dem_lunch, correct=FALSE)
+summary(aov(table_1_dat_fem$w1_sum_cesd ~ table_1_dat_fem$class))
+summary(aov(table_1_dat_fem$w8_sum_cesd ~ table_1_dat_fem$class))
+
+# Male
+chisq.test(table_1_dat_male$class, table_1_dat_male$w1_dem_ethnicity, correct=FALSE)
+chisq.test(table_1_dat_male$class, table_1_dat_male$w1_dem_high_par_edu, correct=FALSE)
+chisq.test(table_1_dat_male$class, table_1_dat_male$w3_dem_lunch, correct=FALSE)
+summary(aov(table_1_dat_male$w1_sum_cesd ~ table_1_dat_male$class))
+summary(aov(table_1_dat_male$w8_sum_cesd ~ table_1_dat_male$class))
+```
+
+
+$$ PUBLICATION-TABLE-2-ESTIMATES-OF-OTHER-MODELS $$
+*RUN FIRST*
+# M&M Supporting functions necessary for pulling data from models & making plots
+```{r}
+######################################################################################################
+# Supporting functions
+######################################################################################################
+
+
+##########################################################################
+#
+# mplus.get.group.attribute - supporting function for getting attribute
+#
+# arguments:
+#	file - the quoted name of an existing GH5 file
+#   groupstr - the name of the group for the attribute
+#   attrstr - the name of the attribute
+#
+# eg. mplus.get.group.attribute('ex8.1.gh5','individual_data','var_names')
+#
+mplus.get.group.attribute <- function(file, groupstr, attrstr) {
+	if ( !(file.exists(file))) {
+		cstr <- paste("- file does not exist:",file,"\n")
+		stop(cstr)
+	}
+
+	gh5 <- h5dump(file, load=TRUE)
+
+	fid <- H5Fopen(file)
+	gid <- H5Gopen(fid, groupstr)
+	atid <- H5Aopen(gid, attrstr)
+
+	attr <- H5Aread(atid)
+
+	H5Aclose(atid)
+	H5Gclose(gid)
+	H5Fclose(fid)
+
+	attr <- gsub("(^\\s+|\\s+$)", "", attr, perl=TRUE)
+
+	return(attr)
+}
+
+##########################################################################
+#
+# mplus.check.group.attribute - supporting function for checking attribute
+#
+# arguments:
+#	file - the quoted name of an existing GH5 file
+#   groupstr - the name of the group for the attribute
+#   attrstr - the name of the attribute
+#
+# eg. mplus.check.group.attribute('ex8.1.gh5','individual_data','var_names')
+#
+mplus.check.group.attribute <- function(file, groupstr, attrstr) {
+	if ( !(file.exists(file))) {
+		cstr <- paste("- file does not exist:",file,"\n")
+		stop(cstr)
+	}
+
+	fid <- H5Fopen(file)
+	gid <- H5Gopen(fid, groupstr)
+	atid <- H5Aexists(gid, attrstr)
+
+	H5Gclose(gid)
+	H5Fclose(fid)
+
+	return(atid)
+}
+
+##########################################################################
+#
+# mplus.get.dataset.attribute - supporting function for getting attribute
+#
+# arguments:
+#	file - the quoted name of an existing GH5 file
+#   groupstr - the name of the group for the attribute
+#   attrstr - the name of the attribute
+#
+# eg. mplus.get.dataset.attribute('ex8.1.gh5','individual_data','var_names')
+#
+mplus.get.dataset.attribute <- function(file, datastr, attrstr) {
+	if ( !(file.exists(file))) {
+		cstr <- paste("- file does not exist:",file,"\n")
+		stop(cstr)
+	}
+
+	gh5 <- h5dump(file, load=TRUE)
+
+	fid <- H5Fopen(file)
+	did <- H5Dopen(fid, datastr)
+	atid <- H5Aopen(did, attrstr)
+
+	attr <- H5Aread(atid)
+
+	H5Aclose(atid)
+	H5Dclose(did)
+	H5Fclose(fid)
+
+	return(attr)
+}
+
+##########################################################################
+#
+# mplus.check.dataset.attribute - supporting function for getting attribute
+#
+# arguments:
+#	file - the quoted name of an existing GH5 file
+#   groupstr - the name of the group for the attribute
+#   attrstr - the name of the attribute
+#
+# eg. mplus.check.dataset.attribute('ex8.1.gh5','individual_data','var_names')
+#
+mplus.check.dataset.attribute <- function(file, datastr, attrstr) {
+	if ( !(file.exists(file))) {
+		cstr <- paste("- file does not exist:",file,"\n")
+		stop(cstr)
+	}
+
+	gh5 <- h5dump(file, load=TRUE)
+
+	fid <- H5Fopen(file)
+	did <- H5Dopen(fid, datastr)
+	atid <- H5Aexists(did, attrstr)
+
+	H5Dclose(did)
+	H5Fclose(fid)
+
+	return(atid)
+}
+
+##########################################################################
+#
+# mplus.get.group.dataset - supporting function for getting dataset
+#
+# arguments:
+#	file - the quoted name of an existing GH5 file
+#   groupstr - the name of the group for the attribute
+#   datastr - the name of the attribute
+#
+# eg. mplus.get.group.dataset('ex8.1.gh5','bayesian_data','statements')
+#
+mplus.get.group.dataset <- function(file, groupstr, datastr) {
+	if ( !(file.exists(file))) {
+		cstr <- paste("- file does not exist:",file,"\n")
+		stop(cstr)
+	}
+
+	gh5 <- h5dump(file, load=TRUE)
+
+	fid <- H5Fopen(file)
+	gid <- H5Gopen(fid, groupstr)
+	dtid <- H5Dopen(gid, datastr)
+
+	data <- H5Dread(dtid)
+
+	H5Dclose(dtid)
+	H5Gclose(gid)
+	H5Fclose(fid)
+
+	return(data)
+}
+
+estimate_mode <- function(x) {
+	d <- density(x)
+	d$x[which.max(d$y)]
+}
+
+##########################################################################
+#
+# mplus.get.file.dataset - supporting function for getting dataset in the file
+#
+# arguments:
+#	file - the quoted name of an existing GH5 file
+#   datastr - the name of the attribute
+#
+# eg. mplus.get.file.dataset('ex8.1.gh5','model_group_labels')
+#
+mplus.get.file.dataset <- function(file, datastr) {
+	if ( !(file.exists(file))) {
+		cstr <- paste("- file does not exist:",file,"\n")
+		stop(cstr)
+	}
+
+	gh5 <- h5dump(file, load=TRUE)
+
+	fid <- H5Fopen(file)
+	dtid <- H5Dopen(fid, datastr)
+
+	data <- H5Dread(dtid)
+
+	H5Dclose(dtid)
+	H5Fclose(fid)
+
+	return(data)
+}
+
+estimate_mode <- function(x) {
+	d <- density(x)
+	d$x[which.max(d$y)]
+}
+
+
+
+
+
+######################################################################################################
+# Math functions
+######################################################################################################
+
+lin <- function(y, link) {
+	if (link == 0) {
+		x <- logistic(y)
+	} else {
+		x <- pnorm(y, mean=0, sd=1)
+	}
+	x
+}
+
+logistic <- function(y) {
+	if (y > 50) {
+		x = 1
+	} else if (y > -50) {
+		x = 1 / (1 + exp(-y))
+	} else {
+		x = 0
+	}
+
+	x
+}
+
+
+
+######################################################################################################
+# Utility functions
+######################################################################################################
+
+zmatch <- function(zvalue, values) {
+
+	nvalues <- length(values)
+	index <- 0
+	for (i in c(1:nvalues)) {
+		cat(sprintf("%s\n", zvalue))
+		cat(sprintf("%s\n", round(values[i],3)))
+		if (zvalue == round(values[i],3)) {
+			print("found!")
+			index <- i
+		}
+	}
+	index
+}
+```
+# M&M Plot functions
+```{r}
+##########################################################################
+#
+# mplus.view.plots - loads the file and lists all available plots
+#
+# arguments:
+#    file - the quoted name of an existing GH5 file
+#
+# eg. mplus.view.plots('ex.gh5')
+#
+mplus.view.plots <- function(file) {
+	mplus.load(file)
+}
+
+
+##########################################################################
+#
+# mplus.load - loads the file and lists all available plots
+#
+# arguments:
+#    file - the quoted name of an existing GH5 file
+#
+# eg. mplus.load('ex.gh5')
+#
+mplus.load <- function(file) {
+
+	if (!(file.exists(file))) {
+		cstr <- paste("- file does not exist:",file,"\n")
+		cat(cstr)
+	}
+
+	#H5close()
+	gh5 <- h5dump(file, load=TRUE)
+
+	cat(c("\nPlot functions:\n"))
+
+	if ("efa" %in% names(gh5)) {
+		if (exists("mplus.plot.eigenvalues",mode="function")) {
+			cat(c(" - mplus.plot.eigenvalues('"),file,"')\n",sep="")
+		}
+	}
+
+	if ("individual_data" %in% names(gh5)) {
+		if (exists("mplus.plot.histogram",mode="function")) {
+			cat(c(" - mplus.plot.histogram('"),file,"',variable,bins)\n",sep="")
+		}
+		if (exists("mplus.plot.densityplot",mode="function")) {
+			cat(c(" - mplus.plot.densityplot('"),file,"',variable,bins)\n",sep="")
+		}
+		if (exists("mplus.plot.qqnorm",mode="function")) {
+			cat(c(" - mplus.plot.qqnorm('"),file,"',variable)\n",sep="")
+		}
+		if (exists("mplus.plot.scatterplot",mode="function")) {
+			cat(c(" - mplus.plot.scatterplot('"),file,"',xvar,yvar)\n",sep="")
+		}
+
+		if (mplus.check.group.attribute(file,"individual_data","timeseries")) {
+			if (exists("mplus.plot.timeseries.observed",mode="function")) {
+				if (mplus.check.group.attribute(file,'individual_data','cluster')) {
+					cat(c(" - mplus.plot.timeseries.observed('"),file,"',variable,idnum)\n",sep="")
+				} else {
+					cat(c(" - mplus.plot.timeseries.observed('"),file,"',variable)\n",sep="")
+				}
+			}
+		}
+	}
+
+	if ("process_data" %in% names(gh5) && "means_and_variances_data" %in% names(gh5)) {
+		np <- length(attr(gh5$process_data,"names"))
+		for (i in c(1:np)) {
+			cstr <- paste(c("process"), as.character(i), sep="")
+			proc <- gh5$process_data[[cstr]]
+
+			# Replace the line below with series of low-level function calls
+			cstr2 <- paste(c("process_data"),"/",cstr,"", sep="")
+			prop <- mplus.get.group.attribute(file, cstr2, 'properties')
+
+			values <- attr(gh5$means_and_variances_data,"names")
+			series_type <- as.integer(prop[1])
+
+			if (series_type == 1) {
+				sm_ind <- pmatch("y_observed_means",values,nomatch=0)
+				if (sm_ind > 0 && exists("mplus.plot.sample_means",mode="function")) {
+					cstr2 <- paste(c(" - mplus.plot.sample_means('"),file,"','",cstr,"')\n",sep="")
+					cat(cstr2)
+				}
+
+				em_ind <- pmatch("y_estimated_means",values,nomatch=0)
+				if (em_ind > 0 && exists("mplus.plot.estimated_means",mode="function")) {
+					cstr2 <- paste(c(" - mplus.plot.estimated_means('"),file,"','",cstr,"')\n",sep="")
+					cat(cstr2)
+				}
+
+				if (sm_ind>0 && em_ind>0 && exists("mplus.plot.sample_and_estimated_means",mode="function")) {
+					cstr2 <- paste(c(" - mplus.plot.sample_and_estimated_means('"),file,"','",cstr,"')\n",sep="")
+					cat(cstr2)
+				}
+
+				em_ind <- pmatch("y_estimated_modes",values,nomatch=0)
+				if (em_ind > 0 && exists("mplus.plot.estimated_modes",mode="function")) {
+					cstr2 <- paste(c(" - mplus.plot.estimated_modes('"),file,"','",cstr,"')\n",sep="")
+					cat(cstr2)
+				}
+
+				em_ind <- pmatch("y_estimated_medians",values,nomatch=0)
+				if (em_ind > 0 && exists("mplus.plot.estimated_medians",mode="function")) {
+					cstr2 <- paste(c(" - mplus.plot.estimated_medians('"),file,"','",cstr,"')\n",sep="")
+					cat(cstr2)
+				}
+			} else if (series_type == 2) {
+				em_ind <- pmatch("latent_estimated_means",values,nomatch=0)
+				if (em_ind > 0 && exists("mplus.plot.estimated_means",mode="function")) {
+					cstr2 <- paste(c(" - mplus.plot.estimated_means('"),file,"','",cstr,"')\n",sep="")
+					cat(cstr2)
+				}
+
+				em_ind <- pmatch("latent_estimated_modes",values,nomatch=0)
+				if (em_ind > 0 && exists("mplus.plot.estimated_modes",mode="function")) {
+					cstr2 <- paste(c(" - mplus.plot.estimated_modes('"),file,"','",cstr,"')\n",sep="")
+					cat(cstr2)
+				}
+
+				em_ind <- pmatch("latent_estimated_medians",values,nomatch=0)
+				if (em_ind > 0 && exists("mplus.plot.estimated_medians",mode="function")) {
+					cstr2 <- paste(c(" - mplus.plot.estimated_medians('"),file,"','",cstr,"')\n",sep="")
+					cat(cstr2)
+				}
+			} else if (series_type == 3) {
+				em_ind <- pmatch("observed_probs",values,nomatch=0)
+				if (em_ind > 0 && exists("mplus.plot.sample_proportions",mode="function")) {
+					cstr2 <- paste(c(" - mplus.plot.sample_proportions('"),file,"','",cstr,"',cat1,cat2)\n",sep="")
+					cat(cstr2)
+				}
+
+				em_ind <- pmatch("estimated_probs",values,nomatch=0)
+				if (em_ind > 0 && exists("mplus.plot.estimated_probabilities",mode="function")) {
+					cstr2 <- paste(c(" - mplus.plot.estimated_probabilities('"),file,"','",cstr,"',cat1,cat2)\n",sep="")
+					cat(cstr2)
+				}
+			} else {
+				cstr2 <- paste(c("'"),cstr,"' has unknown series type.\n")
+				cat(cstr2)
+			}
+		}
+	}
+
+	if ("loop_data" %in% names(gh5)) {
+		if (exists("mplus.list.loop.labels",mode="function")) {
+			cat(c(" - mplus.list.loop.labels('"),file,"')\n",sep="")
+		}
+		if (exists("mplus.plot.loop",mode="function")) {
+			cat(c(" - mplus.plot.loop('"),file,"',label,showgrid)\n",sep="")
+		}
+	}
+
+	if ("moderation_data" %in% names(gh5)) {
+		if (exists("mplus.list.moderation.labels",mode="function")) {
+			cat(c(" - mplus.list.moderation.labels('"),file,"')\n",sep="")
+		}
+		if (exists("mplus.plot.moderation",mode="function")) {
+			cat(c(" - mplus.plot.moderation('"),file,"',label,group,allgroups,showgrid,lloc)\n",sep="")
+		}
+	}
+
+	if ("sensitivity_data" %in% names(gh5)) {
+		if (exists("mplus.list.sensitivity.labels",mode="function")) {
+			cat(c(" - mplus.list.sensitivity.labels('"),file,"')\n",sep="")
+		}
+		if (exists("mplus.plot.sensitivity",mode="function")) {
+			cat(c(" - mplus.plot.sensitivity('"),file,"',label,zvalue,group,allgroups,showgrid,lloc,zdecimals)\n",sep="")
+		}
+	}
+
+	if ("irt_data" %in% names(gh5)) {
+		if (exists("mplus.list.irt.variables",mode="function")) {
+			cat(c(" - mplus.list.irt.variables('"),file,"')\n",sep="")
+		}
+		if (exists("mplus.list.irt.xvariables",mode="function")) {
+			cat(c(" - mplus.list.irt.xvariables('"),file,"')\n",sep="")
+		}
+		if (exists("mplus.plot.irt.icc",mode="function")) {
+			cat(c(" - mplus.plot.irt.icc('"),file,"',group,xvar,uvar,cat,cat2,covariates,xrange,xstep,lloc)\n",sep="")
+		}
+		if (exists("mplus.plot.irt.iic",mode="function")) {
+			cat(c(" - mplus.plot.irt.iic('"),file,"',group,xvar,uvar,covariates,xrange,xstep,lloc)\n",sep="")
+		}
+		if (exists("mplus.plot.irt.tic",mode="function")) {
+			cat(c(" - mplus.plot.irt.tic('"),file,"',group,xvar,uvar,covariates,xrange,xstep)\n",sep="")
+		}
+	}
+
+	if ("survival_data" %in% names(gh5)) {
+		if (exists("mplus.plot.survival.kaplanmeier",mode="function")) {
+			cat(c(" - mplus.plot.survival.kaplanmeier('"),file,"',survvar,classnum)\n",sep="")
+		}
+		if (exists("mplus.plot.survival.baseline",mode="function")) {
+			cat(c(" - mplus.plot.survival.baseline('"),file,"',survvar,classnum)\n",sep="")
+		}
+		if (exists("mplus.plot.survival.basehazard",mode="function")) {
+			cat(c(" - mplus.plot.survival.basehazard('"),file,"',survvar,classnum)\n",sep="")
+		}
+		if (exists("mplus.plot.survival.sample.logcumulative",mode="function")) {
+			cat(c(" - mplus.plot.survival.sample.logcumulative('"),file,"',survvar,classnum)\n",sep="")
+		}
+		if (exists("mplus.plot.survival.estimated.logcumulative",mode="function")) {
+			cat(c(" - mplus.plot.survival.estimated.logcumulative('"),file,"',survar,classnum)\n",sep="")
+		}
+		if (exists("mplus.plot.survival.kaplanmeier.vs.baseline",mode="function")) {
+			cat(c(" - mplus.plot.survival.kaplanmeier.vs.baseline('"),file,"',survvar,classnum)\n",sep="")
+		}
+		if (exists("mplus.plot.survival.sample.vs.estimated.logcumulative",mode="function")) {
+			cat(c(" - mplus.plot.survival.sample.vs.estimated.logcumulative('"),file,"',survvar,classnum)\n",sep="")
+		}
+	}
+
+	if ("discrete_survival_data" %in% names(gh5)) {
+		if (exists("mplus.plot.discrete.survival.kaplanmeier",mode="function")) {
+			cat(c(" - mplus.plot.discrete.survival.kaplanmeier('"),file,"',survvar,classnum)\n",sep="")
+		}
+		if (exists("mplus.plot.discrete.survival.baseline",mode="function")) {
+			cat(c(" - mplus.plot.discrete.survival.baseline('"),file,"',survvar,classnum)\n",sep="")
+		}
+		if (exists("mplus.plot.discrete.survival.kaplanmeier.vs.baseline",mode="function")) {
+			cat(c(" - mplus.plot.discrete.survival.kaplanmeier.vs.baseline('"),file,"',survvar,classnum)\n",sep="")
+		}
+	}
+
+	if ("bootstrap_data" %in% names(gh5)) {
+		if ("parameters" %in% names(gh5$bootstrap_data)) {
+			if (exists("mplus.list.bootstrap.parameters",mode="function")) {
+				cat(c(" - mplus.list.bootstrap.parameters('"),file,"')\n",sep="")
+			}
+			if (exists("mplus.plot.bootstrap.distribution",mode="function")) {
+				cat(c(" - mplus.plot.bootstrap.distribution('"),file,"',parameter,bins)\n",sep="")
+			}
+		}
+	}
+
+	if ("bayesian_data" %in% names(gh5)) {
+		if ("parameters_autocorr" %in% names(gh5$bayesian_data)) {
+			if ("parameters" %in% names(gh5$bayesian_data$parameters_autocorr)) {
+				if (exists("mplus.list.bayesian.parameters",mode="function")) {
+					cat(c(" - mplus.list.bayesian.parameters('"),file,"',parameter)\n",sep="")
+				}
+				if (exists("mplus.plot.bayesian.traceplot",mode="function")) {
+					cat(c(" - mplus.plot.bayesian.traceplot('"),file,"',parameter)\n",sep="")
+				}
+				if (exists("mplus.plot.bayesian.distribution",mode="function")) {
+					cat(c(" - mplus.plot.bayesian.distribution('"),file,"',parameter,bins)\n",sep="")
+				}
+			}
+			if ("priors" %in% names(gh5$bayesian_data$parameters_autocorr)) {
+				if (exists("mplus.plot.bayesian.prior.distribution",mode="function")) {
+					cat(c(" - mplus.plot.bayesian.prior.distribution('"),file,"',parameter,bins)\n",sep="")
+				}
+			}
+			if ("autocorrelation" %in% names(gh5$bayesian_data$parameters_autocorr)) {
+				if (exists("mplus.plot.bayesian.autocorrelation",mode="function")) {
+					cat(c(" - mplus.plot.bayesian.autocorrelation('"),file,"',parameter,chain)\n",sep="")
+				}
+			}
+		}
+		if ("predictive" %in% names(gh5$bayesian_data)) {
+			if (exists("mplus.list.bayesian.predictive.labels",mode="function")) {
+				cat(c(" - mplus.list.bayesian.predictive.labels('"),file,"')\n",sep="")
+			}
+			if ("observed" %in% names(gh5$bayesian_data$predictive) && "replicated" %in% names(gh5$bayesian_data$predictive)) {
+				if (exists("mplus.plot.bayesian.predictive.scatterplot",mode="function")) {
+					cat(c(" - mplus.plot.bayesian.predictive.scatterplot('"),file,"',plabel)\n",sep="")
+				}
+				if (exists("mplus.plot.bayesian.predictive.distribution",mode="function")) {
+					cat(c(" - mplus.plot.bayesian.predictive.distribution('"),file,"',plabel,bins)\n",sep="")
+				}
+			}
+		}
+		if ("plausible" %in% names(gh5$bayesian_data)) {
+			if (exists("mplus.list.bayesian.plausible.labels",mode="function")) {
+				cat(c(" - mplus.list.bayesian.plausible.labels('"),file,"')\n",sep="")
+			}
+			if (exists("mplus.plot.bayesian.plausible.distribution",mode="function")) {
+				cat(c(" - mplus.plot.bayesian.plausible.distribution('"),file,"',plauslabel,obs,bins)\n",sep="")
+			}
+		}
+	}
+
+	cat(c("\nPlot data extraction functions:\n"))
+
+	if ("efa" %in% names(gh5)) {
+		if (exists("mplus.get.eigenvalues",mode="function")) {
+			cat(c(" - mplus.get.eigenvalues('"),file,"')\n",sep="")
+		}
+	}
+
+	if ("individual_data" %in% names(gh5)) {
+		if (exists("mplus.list.variables",mode="function")) {
+			cat(c(" - mplus.list.variables('"),file,"')\n",sep="")
+		}
+		if (exists("mplus.get.data",mode="function")) {
+			cat(c(" - mplus.get.data('"),file,"',variable)\n",sep="")
+		}
+		if (mplus.check.group.attribute(file,"individual_data","timeseries")) {
+			if (exists("mplus.list.timeseries.variables",mode="function")) {
+				cat(c(" - mplus.list.timeseries.variables('"),file,"')\n",sep="")
+			}
+			if (exists("mplus.get.timeseries.data",mode="function")) {
+				if (mplus.check.group.attribute(file,'individual_data','cluster')) {
+					cat(c(" - mplus.get.timeseries.data('"),file,"',variable,idnum)\n",sep="")
+				} else {
+					cat(c(" - mplus.get.timeseries.data('"),file,"',variable)\n",sep="")
+				}
+			}
+		}
+	}
+
+	if ("process_data" %in% names(gh5)) {
+		if (exists("mplus.list.processes",mode="function")) {
+			cat(c(" - mplus.list.processes('"),file,"')\n",sep="")
+		}
+	}
+
+	if ("loop_data" %in% names(gh5)) {
+		if (exists("mplus.get.loop.estimates",mode="function")) {
+			cat(c(" - mplus.get.loop.estimates('"),file,"',label)\n",sep="")
+		}
+		if (exists("mplus.get.loop.lowerci",mode="function")) {
+			cat(c(" - mplus.get.loop.lowerci('"),file,"',label)\n",sep="")
+		}
+		if (exists("mplus.get.loop.upperci",mode="function")) {
+			cat(c(" - mplus.get.loop.upperci('"),file,"',label)\n",sep="")
+		}
+		if (exists("mplus.get.loop.xvalues",mode="function")) {
+			cat(c(" - mplus.get.loop.xvalues('"),file,"')\n",sep="")
+		}
+	}
+
+	if ("moderation_data" %in% names(gh5)) {
+		if (exists("mplus.get.moderation.estimates",mode="function")) {
+			cat(c(" - mplus.get.moderation.estimates('"),file,"',label)\n",sep="")
+		}
+		if (exists("mplus.get.moderation.lowerci",mode="function")) {
+			cat(c(" - mplus.get.moderation.lowerci('"),file,"',label)\n",sep="")
+		}
+		if (exists("mplus.get.moderation.upperci",mode="function")) {
+			cat(c(" - mplus.get.moderation.upperci('"),file,"',label)\n",sep="")
+		}
+		if (exists("mplus.get.moderation.xvalues",mode="function")) {
+			cat(c(" - mplus.get.moderation.xvalues('"),file,"')\n",sep="")
+		}
+	}
+
+	if ("sensitivity_data" %in% names(gh5)) {
+		if (exists("mplus.get.sensitivity.estimates",mode="function")) {
+			cat(c(" - mplus.get.sensitivity.estimates('"),file,"',label,zvalue,group,zdecimals)\n",sep="")
+		}
+		if (exists("mplus.get.sensitivity.lowerci",mode="function")) {
+			cat(c(" - mplus.get.sensitivity.lowerci('"),file,"',label,zvalue,group,zdecimals)\n",sep="")
+		}
+		if (exists("mplus.get.sensitivity.upperci",mode="function")) {
+			cat(c(" - mplus.get.sensitivity.upperci('"),file,"',label,zvalue,group,zdecimals)\n",sep="")
+		}
+		if (exists("mplus.get.sensitivity.xvalues",mode="function")) {
+			cat(c(" - mplus.get.sensitivity.xvalues('"),file,"')\n",sep="")
+		}
+		if (exists("mplus.list.sensitivity.zvalues",mode="function")) {
+			cat(c(" - mplus.list.sensitivity.zvalues('"),file,"')\n",sep="")
+		}
+	}
+
+	if ("irt_data" %in% names(gh5)) {
+		if (exists("mplus.compute.irt.icc",mode="function")) {
+			cat(c(" - mplus.compute.irt.icc('"),file,"',group,xvar,uvar,cat,xvector,covariates)\n",sep="")
+		}
+		if (exists("mplus.compute.irt.iic",mode="function")) {
+			cat(c(" - mplus.compute.irt.iic('"),file,"',group,xvar,uvar,xvector,covariates)\n",sep="")
+		}
+	}
+
+	if ("process_data" %in% names(gh5) && "means_and_variances_data" %in% names(gh5)) {
+		np <- length(attr(gh5$process_data,"names"))
+		for (i in c(1:np)) {
+			cstr <- paste(c("process"), as.character(i), sep="")
+			proc <- gh5$process_data[[cstr]]
+
+			# Replace the line below with series of low-level function calls
+			cstr2 <- paste(c("process_data"),"/",cstr,"", sep="")
+			prop <- mplus.get.group.attribute(file, cstr2, 'properties')
+
+			values <- attr(gh5$means_and_variances_data,"names")
+
+			if (prop[1] == 1) {
+				sm_ind <- pmatch("y_observed_means",values,nomatch=0)
+				if (sm_ind > 0 && exists("mplus.get.sample_means",mode="function")) {
+					cstr2 <- paste(c(" - mplus.get.sample_means('"),file,"','",cstr,"')\n",sep="")
+					cat(cstr2)
+				}
+
+				em_ind <- pmatch("y_estimated_means",values,nomatch=0)
+				if (em_ind > 0 && exists("mplus.get.estimated_means",mode="function")) {
+					cstr2 <- paste(c(" - mplus.get.estimated_means('"),file,"','",cstr,"')\n",sep="")
+					cat(cstr2)
+				}
+
+				em_ind <- pmatch("y_estimated_modes",values,nomatch=0)
+				if (em_ind > 0 && exists("mplus.get.estimated_modes",mode="function")) {
+					cstr2 <- paste(c(" - mplus.get.estimated_modes('"),file,"','",cstr,"')\n",sep="")
+					cat(cstr2)
+				}
+
+				em_ind <- pmatch("y_estimated_medians",values,nomatch=0)
+				if (em_ind > 0 && exists("mplus.get.estimated_medians",mode="function")) {
+					cstr2 <- paste(c(" - mplus.get.estimated_medians('"),file,"','",cstr,"')\n",sep="")
+					cat(cstr2)
+				}
+			} else if (prop[1] == 2) {
+				em_ind <- pmatch("e_estimated_means",values,nomatch=0)
+				if (em_ind > 0 && exists("mplus.get.estimated_means",mode="function")) {
+					cstr2 <- paste(c(" - mplus.get.estimated_means('"),file,"','",cstr,"')\n",sep="")
+					cat(cstr2)
+				}
+
+				em_ind <- pmatch("e_estimated_modes",values,nomatch=0)
+				if (em_ind > 0 && exists("mplus.get.estimated_modes",mode="function")) {
+					cstr2 <- paste(c(" - mplus.get.estimated_modes('"),file,"','",cstr,"')\n",sep="")
+					cat(cstr2)
+				}
+
+				em_ind <- pmatch("e_estimated_medians",values,nomatch=0)
+				if (em_ind > 0 && exists("mplus.get.estimated_medians",mode="function")) {
+					cstr2 <- paste(c(" - mplus.get.estimated_medians('"),file,"','",cstr,"')\n",sep="")
+					cat(cstr2)
+				}
+			} else if (prop[1] == 3) {
+				em_ind <- pmatch("observed_probs",values,nomatch=0)
+				if (em_ind > 0 && exists("mplus.get.sample_proportions",mode="function")) {
+					cstr2 <- paste(c(" - mplus.get.sample_proportions('"),file,"','",cstr,"',cat1,cat2)\n",sep="")
+					cat(cstr2)
+				}
+
+				em_ind <- pmatch("estimated_probs",values,nomatch=0)
+				if (em_ind > 0 && exists("mplus.get.estimated_probabilities",mode="function")) {
+					cstr2 <- paste(c(" - mplus.get.estimated_probabilities('"),file,"','",cstr,"',cat1,cat2)\n",sep="")
+					cat(cstr2)
+				}
+			} else {
+				cstr2 <- paste(c("'"),cstr,"' has unknown series type.\n")
+				cat(cstr2)
+			}
+		}
+	}
+
+	if ("survival_data" %in% names(gh5)) {
+		if (exists("mplus.list.survival.variables",mode="function")) {
+			cat(c(" - mplus.list.survival.variables('"),file,"')\n",sep="")
+		}
+		if (exists("mplus.get.survival.kaplanmeier.values",mode="function")) {
+			cat(c(" - mplus.get.survival.kaplanmeier.values('"),file,"',survvar,classnum,time)\n",sep="")
+		}
+		if (exists("mplus.compute.survival.sample.logcumulative.values",mode="function")) {
+			cat(c(" - mplus.compute.survival.sample.logcumulative.values('"),file,"',survvar,classnum,time)\n",sep="")
+		}
+		if (exists("mplus.get.survival.baseline.values",mode="function")) {
+			cat(c(" - mplus.get.survival.baseline.values('"),file,"',survvar,survvar2,clasnum,time)\n",sep="")
+		}
+		if (exists("mplus.compute.survival.estimated.logcumulative.values",mode="function")) {
+			cat(c(" - mplus.compute.survival.estimated.logcumulative.values('"),file,"',survvar,classnum,time)\n",sep="")
+		}
+		if (exists("mplus.get.survival.basehazard.values",mode="function")) {
+			cat(c(" - mplus.get.survival.basehazard.values('"),file,"',file,survvar,classnum,time)\n",sep="")
+		}
+	}
+
+	if ("discrete_survival_data" %in% names(gh5)) {
+		if (exists("mplus.list.discrete.survival.variables",mode="function")) {
+			cat(c(" - mplus.list.discrete.survival.variables('"),file,"')\n",sep="")
+		}
+		if (exists("mplus.get.discrete.survival.kaplanmeier.values",mode="function")) {
+			cat(c(" - mplus.get.discrete.survival.kaplanmeier.values('"),file,"',survvar,classnum,time)\n",sep="")
+		}
+		if (exists("mplus.get.discrete.survival.baseline.values",mode="function")) {
+			cat(c(" - mplus.get.discrete.survival.baseline.values('"),file,"',survvar,survvar2,clasnum,time)\n",sep="")
+		}
+	}
+
+	if ("bootstrap_data" %in% names(gh5)) {
+		if ("parameters" %in% names(gh5$bootstrap_data)) {
+			if (exists("mplus.get.bootstrap.distribution",mode="function")) {
+				cat(c(" - mplus.get.bootstrap.distribution('"),file,"',parameter)\n",sep="")
+			}
+			if (exists("mplus.get.bootstrap.point.estimate",mode="function")) {
+				cat(c(" - mplus.get.bootstrap.point.estimate('"),file,"',parameter)\n",sep="")
+			}
+		}
+	}
+
+	if ("bayesian_data" %in% names(gh5)) {
+		if ("parameters_autocorr" %in% names(gh5$bayesian_data)) {
+			if ("parameters" %in% names(gh5$bayesian_data$parameters_autocorr)) {
+				if (exists("mplus.get.bayesian.parameter.data",mode="function")) {
+					cat(c(" - mplus.get.bayesian.parameter.data('"),file,"',parameter,chain)\n",sep="")
+				}
+			}
+			if ("priors" %in% names(gh5$bayesian_data$parameters_autocorr)) {
+				if (exists("mplus.get.bayesian.prior.parameter.data",mode="function")) {
+					cat(c(" - mplus.get.bayesian.prior.parameter.data('"),file,"',parameter)\n",sep="")
+				}
+			}
+			if ("autocorrelation" %in% names(gh5$bayesian_data$parameters_autocorr)) {
+				if (exists("mplus.get.bayesian.autocorrelation",mode="function")) {
+					cat(c(" - mplus.get.bayesian.autocorrelation('"),file,"',parameter,chain)\n",sep="")
+				}
+			}
+		}
+		if ("predictive" %in% names(gh5$bayesian_data)) {
+			if ("observed" %in% names(gh5$bayesian_data$predictive)) {
+				if (exists("mplus.get.bayesian.predictive.observed",mode="function")) {
+					cat(c(" - mplus.get.bayesian.predictive.observed('"),file,"',plabel)\n",sep="")
+				}
+			}
+			if ("replicated" %in% names(gh5$bayesian_data$predictive)) {
+				if (exists("mplus.get.bayesian.predictive.replicated",mode="function")) {
+					cat(c(" - mplus.get.bayesian.predictive.replicated('"),file,"',plabel)\n",sep="")
+				}
+			}
+			if ("pvalues" %in% names(gh5$bayesian_data$predictive)) {
+				if (exists("mplus.get.bayesian.predictive.lowerci",mode="function")) {
+					cat(c(" - mplus.get.bayesian.predictive.lowerci('"),file,"',plabel)\n",sep="")
+				}
+				if (exists("mplus.get.bayesian.predictive.upperci",mode="function")) {
+					cat(c(" - mplus.get.bayesian.predictive.upperci('"),file,"',plabel)\n",sep="")
+				}
+				if (exists("mplus.get.bayesian.predictive.pvalue",mode="function")) {
+					cat(c(" - mplus.get.bayesian.predictive.pvalue('"),file,"',plabel)\n",sep="")
+				}
+				if (exists("mplus.get.bayesian.predictive.pvalue_type",mode="function")) {
+					cat(c(" - mplus.get.bayesian.predictive.pvalue('"),file,"',plabel)\n",sep="")
+				}
+			}
+		}
+		if ("plausible" %in% names(gh5$bayesian_data)) {
+			if (exists("mplus.get.bayesian.plausible.data",mode="function")) {
+				cat(c(" - mplus.get.bayesian.plausible.data('"),file,"',plauslabel,obs)\n",sep="")
+			}
+		}
+	}
+
+	invisible(file)
+}
+
+########################################################################
+##########################################################################
+#
+# mplus.get.sample_means - return sample means for the quoted process
+#
+# arguments:
+#	file - the quoted name of an existing GH5 file, required
+#	procstr - the quoted name of a series, not required.  Defaults to 'process1' (the first process)
+#	classidx - the class index, not required - 0 for all classes.  Default to 0.
+#
+# eg. mplus.get.sample_means('ex8.1.gh5','process1',3)
+#
+mplus.get.sample_means <- function(file,procstr='process1',classidx=0) {
+	if (missing(file)) {
+		stop("- the name of the GH5 file is required")
+	}
+	if (!(file.exists(file))) {
+		cstr <- paste("- file does not exist:",file,"\n")
+		stop(cstr)
+	}
+
+	# check that the series exists
+	gh5 <- h5dump(file, load=TRUE)
+
+	# check that the series exists
+	if (!("process_data" %in% names(gh5))) {
+		stop("- requires series information.\n\nUse the SERIES option in Mplus to specify series information for processes\nwith sample means.\n")
+	}
+
+	allpnames <- attr(gh5$process_data,"names")
+	pind <- pmatch(procstr, allpnames, nomatch=0)
+	if (pind == 0) {
+		cstr <- paste("- process does not exist:",procstr,"\n\n")
+		stop(cstr)
+	}
+
+	# get the process
+	proc <- gh5$process_data[[procstr]]
+
+	# get the series type in properties
+	# Replace the line below with series of low-level function calls
+	cstr2 <- paste(c("process_data"),"/",procstr,"", sep="")
+	prop <- mplus.get.group.attribute(file,cstr2,'properties')
+
+	series_type <- prop[1]
+
+	if ( ! (series_type == 1) ) {
+		cstr <- paste("- process does not have sample means:",procstr,"\n\n")
+		stop(cstr)
+	}
+
+	# get the time scores
+	xx <- proc$time_scores
+
+	# set up the array for the estimated means
+	dims <- attr(proc$time_scores,"dim")
+	# if all classes, dimension it by number of classes.  Otherwise, just dimension by 1.
+	if (classidx == 0) {
+		yy <- array(0, c(dims[1],dims[2]))
+	} else {
+		# check that the classidx is within range.
+		if (classidx < 0 || classidx > dims[2]) {
+			cstr <- paste("- classidx is out of range, 1 to ",dims[2],": ",classidx,"\n\n")
+			stop(cstr)
+		}
+		yy <- array(0, c(dims[1],1))
+	}
+
+	# get the indices of variables in the series
+	var_names <- mplus.get.group.attribute(file,cstr2,'var_names')
+
+	mean_vars <- mplus.get.group.attribute(file,'means_and_variances_data/y_observed_means','variables')
+	var_indices <- pmatch(var_names, mean_vars, nomatch=0)
+
+	# only type 1 has sample means
+	if (classidx == 0) {
+		for (i in c(1:dims[2])) {
+			for (j in c(1:dims[1])) {
+				yy[j,i] <- gh5$means_and_variances_data$y_observed_means$values[var_indices[j],i]
+			}
+		}
+	} else {
+		for (j in c(1:dims[1])) {
+			yy[j,i] <- gh5$means_and_variances_data$y_observed_means$values[var_indices[j],classidx]
+		}
+	}
+
+	# return the means
+	return(yy)
+}
+
+
+##########################################################################
+##########################################################################
+#
+# mplus.get.estimated_means - plot estimated means for the quoted process
+#
+# arguments:
+#	file - the quoted name of an existing GH5 file, required
+#	procstr - the quoted name of a series, not required.  Defaults to 'process1' (the first process)
+#	classidx - the class index, not required - 0 for all classes.  Default to 0.
+#
+# eg. mplus.get.estimated_means('ex8.1.gh5','process1',3)
+#
+mplus.get.estimated_means <-function(file,procstr='process1',classidx=0) {
+	if (missing(file)) {
+		stop(" - name of the GH5 file is required")
+	}
+	if (!(file.exists(file))) {
+		cstr <- paste("- file does not exist:",file,"\n")
+		stop(cstr)
+	}
+
+	# check that the series exists
+	gh5 <- h5dump(file, load=TRUE)
+
+	# check that the series exists
+	if (!("process_data" %in% names(gh5))) {
+		stop("- requires series information\n\nUse the SERIES option in Mplus to specify series information for processes\nwith estimated means.\n")
+	}
+
+	allpnames <- attr(gh5$process_data,"names")
+	pind <- pmatch(procstr, allpnames, nomatch=0)
+	if (pind == 0) {
+		cstr <- paste("- process does not exist:",procstr,"\n\n")
+		stop(cstr)
+	}
+
+	# get the process
+	proc <- gh5$process_data[[procstr]]
+
+	# get the series type in properties
+	# Replace the line below with series of low-level function calls
+	cstr2 <- paste(c("process_data"),"/",procstr,"", sep="")
+	prop <- mplus.get.group.attribute(file,cstr2,'properties')
+
+	series_type <- prop[1]
+	if ( ! (series_type == 1 || series_type == 2) ) {
+		cstr <- paste("- process does not have estimated means:",procstr,"\n\n")
+		stop(cstr)
+	}
+
+	# set up the array for the estimated means
+	dims <- attr(proc$time_scores,"dim")
+	# if all classes, dimension it by number of classes.  Otherwise, just dimension by 1.
+	if (classidx == 0) {
+		yy <- array(0, c(dims[1],dims[2]))
+	} else {
+		# check that the classidx is within range.
+		if (classidx < 0 || classidx > dims[2]) {
+			cstr <- paste("- classidx is out of range, 1 to ",dims[2],": ",classidx,"\n\n")
+			stop(cstr)
+		}
+		yy <- array(0, c(dims[1],1))
+	}
+
+	# get the indices of variables in the series
+	var_names <- mplus.get.group.attribute(file,cstr2,'var_names')
+
+	if (series_type == 1) {
+		mean_vars <- mplus.get.group.attribute(file,'means_and_variances_data/y_estimated_means','variables')
+	} else {
+		mean_vars <- mplus.get.group.attribute(file,'means_and_variances_data/latent_estimated_means','variables')
+	}
+	var_indices <- pmatch(var_names, mean_vars, nomatch=0)
+
+	# type 1 is estimated means for observed variables
+	if (series_type == 1) {
+		if (classidx == 0) {
+			for (i in c(1:dims[2])) {
+				for (j in c(1:dims[1])) {
+					yy[j,i] <- gh5$means_and_variances_data$y_estimated_means$values[var_indices[j],i]
+				}
+			}
+		} else {
+			for (j in c(1:dims[1])) {
+				yy[j,i] <- gh5$means_and_variances_data$y_estimated_means$values[var_indices[j],classidx]
+			}
+		}
+	}
+
+	# type 2 is estimated means for latent variables
+	if (series_type == 2) {
+		if (classidx == 0) {
+			for (i in c(1:dims[2])) {
+				for (j in c(1:dims[1])) {
+					yy[j,i] <- gh5$means_and_variances_data$latent_estimated_means$values[var_indices[j],i]
+				}
+			}
+		} else {
+			for (j in c(1:dims[1])) {
+				yy[j,i] <- gh5$means_and_variances_data$latent_estimated_means$values[var_indices[j],classidx]
+			}
+		}
+	}
+
+	# return the means
+	return(yy)
+}
+
+
+##########################################################################
+
+##########################################################################
+#
+# mplus.plot.sample_and_estimated_means - plot sample and estimated means for the
+# quoted process
+#
+# arguments:
+#	file - the quoted name of an existing GH5 file
+#	procstr - the quoted name of a series
+#
+# eg. mplus.plot.sample_and_estimated_means('process1')
+#
+mplus.plot.sample_and_estimated_means <-function(file,procstr='process1',ptype='o') {
+	if (missing(file)) {
+		stop("- name of the GH5 file is required")
+	}
+	if (!(file.exists(file))) {
+		cstr <- paste("- file does not exist:",file,"\n")
+		stop(cstr)
+	}
+
+	# check that the series exists
+	#H5close()
+	gh5 <- h5dump(file, load=TRUE)
+
+	# check that the series exists
+	if (!("process_data" %in% names(gh5))) {
+		stop("- requires series information\n\nUse the SERIES option in Mplus to specify series information for processes\nwith sample and estimated means.\n")
+	}
+
+	allpnames <- attr(gh5$process_data,"names")
+	pind <- pmatch(procstr, allpnames, nomatch=0)
+	if (pind == 0) {
+		cstr <- paste("- process does not exist:",procstr,"\n\n")
+		stop(cstr)
+	}
+
+	# get the process
+	proc <- gh5$process_data[[procstr]]
+
+	# get the series type in properties
+	cstr2 <- paste(c("process_data"),"/",procstr,"", sep="")
+	prop <- mplus.get.group.attribute(file,cstr2,'properties')
+
+	series_type <- prop[1]
+	if ( ! (series_type == 1) ) {
+		cstr <- paste("- process does not have sample means:",procstr,"\n\n")
+		stop(cstr)
+	}
+
+	# get the dimensions of the time_scores array and create an array with twice the size of the
+	# first dimension
+	dims <- attr(proc$time_scores,"dim")
+	xx <- array(0, c(dims[1],2*dims[2]))
+	yy <- array(0, c(dims[1],2*dims[2]))
+
+	samp <- mplus.get.sample_means(file,procstr)
+	emean <- mplus.get.estimated_means(file,procstr)
+
+	for (i in c(1:dims[1])) {
+		for (j in c(1:dims[2])) {
+			# set the time scores and pick up sample means
+			xx[i,2*j-1] <- proc$time_scores[i,j]
+			yy[i,2*j-1] <- samp[i,j]
+
+			# set the time scores and pick up estimated means
+			xx[i,2*j] <- proc$time_scores[i,j]
+			yy[i,2*j] <- emean[i,j]
+		}
+	}
+
+	# plot the means
+	cstr <- paste("Sample and estimated means for",procstr)
+	plot(xx,yy,xlab="",ylab="",main=cstr,type='n')
+	symb <- array(c(21,22,23,24,25),c(dims[2]))
+	colors <- rainbow(dims[2])
+	for (i in c(1:dims[2])) {
+		lines(xx[,2*i-1],yy[,2*i-1],type=ptype,pch=symb[i],col=colors[i])
+		lines(xx[,2*i],yy[,2*i],type=ptype,pch=symb[i],col=colors[i])
+	}
+
+	ldesc <- array(0,c(2*dims[2]))
+	lty <- array(0,c(2*dims[2]))
+	lwd <- array(0,c(2*dims[2]))
+	lcol <- array(0,c(2*dims[2]))
+	lsymb <- array(0,c(2*dims[2]))
+	for (i in c(1:dims[2])) {
+		ldesc[2*i-1] <- sprintf("Sample means, Class %d", i)
+		lty[2*i-1] = 1
+		lwd[2*i-1] = 2.5
+		lsymb[2*i-1] <- symb[i]
+
+		lcol[2*i] <- colors[i]
+		ldesc[2*i] <- sprintf("Estimated means, Class %d", i)
+		lty[2*i] = 1
+		lwd[2*i] = 2.5
+		lcol[2*i] <- colors[i]
+		lsymb[2*i] <- symb[i]
+	}
+	legend('bottomright',col=lcol,pch=lsymb,ldesc,lty=lty,lwd=lwd)
+}
+
+
+##########################################################################
+
+##########################################################################
+#
+# mplus.get.time_scores - return time scores for the quoted process
+#
+# arguments:
+#	procstr - the quoted name of a series
+#
+# eg. mplus.get.time_scores('ex6.1.gh5', 'process1')
+#
+mplus.get.time_scores <- function(file,procstr='process1') {
+	if (missing(file)) {
+		stop("- the name of the GH5 file is required")
+	}
+	if (!(file.exists(file))) {
+		cstr <- paste("- file does not exist:",file,"\n")
+		stop(cstr)
+	}
+
+	# check that the series exists
+	gh5 <- h5dump(file, load=TRUE)
+
+	# check that the series exists
+	if (!("process_data" %in% names(gh5))) {
+		stop("- requires series information.\n\nUse the SERIES option in Mplus to specify series information for processes\nwith sample means.\n")
+	}
+
+	allpnames <- attr(gh5$process_data,"names")
+	pind <- pmatch(procstr, allpnames, nomatch=0)
+	if (pind == 0) {
+		cstr <- paste("- process does not exist:",procstr,"\n\n")
+		stop(cstr)
+	}
+
+	# get the process
+	proc <- gh5$process_data[[procstr]]
+
+	# get the series type in properties
+	# Replace the line below with series of low-level function calls
+	cstr2 <- paste(c("process_data"),"/",procstr,"", sep="")
+	prop <- mplus.get.group.attribute(file,cstr2,'properties')
+
+	series_type <- prop[1]
+
+	# get the time scores
+	xx <- proc$time_scores
+	return(xx)
+}
+
+
+
+##########################################################################
+
+```
+
+## MGA CLASS COMPARISONS (GETTING CLASS % FROM 1,2,3,5 CLASS SOLUTIONS)
+*Need to move .dat files individually to desktop*
+
+#1 CLASS
+```{r}
+waves <- c(1:8)
+
+# Pulling predicted class probabilities
+cesd_1 <- readModels("/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/SHADE MPlus/LCGA/1LGCA Sum/~Multi-Group Analysis/Outputs/Other class solutions/1 Class/LCGA_MG_QUAD_CESD_1.out", what = "savedata")
+
+# Converting to df
+cesd_cp_1 <- cesd_1[["savedata"]] %>%
+  clean_names() %>%
+  dplyr:: select(sid, gender, c) %>%
+  rename(class = c) %>%
+  dplyr::select(sid, gender, class)
+
+cesd_cp_1 %>% group_by(gender,class) %>% summarise(n = n())
+
+```
+
+#2 CLASS
+```{r}
+waves <- c(1:8)
+
+# Pulling predicted class probabilities
+cesd_2 <- readModels("/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/SHADE MPlus/LCGA/1LGCA Sum/~Multi-Group Analysis/Outputs/Other class solutions/2 Class/LCGA_MG_QUAD_CESD_2.out", what = "savedata")
+
+# Converting to df
+cesd_cp_2 <- cesd_2[["savedata"]] %>%
+  clean_names() %>%
+  dplyr:: select(sid, gender, c) %>%
+  rename(class = c) %>%
+  dplyr::select(sid, gender, class)
+
+cesd_cp_2 %>% group_by(gender,class) %>% summarise(n = n())
+
+```
+
+#3 CLASS
+```{r}
+waves <- c(1:8)
+
+# Pulling predicted class probabilities
+cesd_3 <- readModels("/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/SHADE MPlus/LCGA/1LGCA Sum/~Multi-Group Analysis/Outputs/Other class solutions/3 Class/LCGA_MG_QUAD_CESD_3.out", what = "savedata")
+
+# Converting to df
+cesd_cp_3 <- cesd_3[["savedata"]] %>%
+  clean_names() %>%
+  dplyr:: select(sid, gender, c) %>%
+  rename(class = c) %>%
+  dplyr::select(sid, gender, class)
+
+cesd_cp_3 %>% group_by(gender,class) %>% summarise(n = n())
+
+```
+
+#4 CLASS (PRIMARY ANALYSIS)
+```{r}
+shade_dat_class_select %>% group_by(class,gender) %>% summarise(count=n()) %>% mutate(n_per = 100*(count/sum(count)))
+```
+
+#5 CLASS
+```{r}
+waves <- c(1:8)
+
+# Pulling predicted class probabilities
+cesd_5 <- readModels("/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/SHADE MPlus/LCGA/1LGCA Sum/~Multi-Group Analysis/Outputs/Other class solutions/5 Class/LCGA_MG_QUAD_CESD_5.out", what = "savedata")
+
+# Converting to df
+cesd_cp_5 <- cesd_5[["savedata"]] %>%
+  clean_names() %>%
+  dplyr:: select(sid, gender, c) %>%
+  rename(class = c) %>%
+  dplyr::select(sid, gender, class)
+
+cesd_cp_5 %>% group_by(gender,class) %>% summarise(n = n())
+
+```
+
+$$ PUBLICATION - FIG -1 $$
+
+## COMMENT OFF CODE FOR COMPLETE CASS ANALYSES ##
+# Comparing LCGA predicted means to actual CESD sum score means by wave and PCM
+*FIGURE 1 - MGA analysis*
+*Note that classes are switched to match OG*
+```{r}
+library(naniar)
+# Renaming columns to classes 
+# Switching classes to match original classes 
+cesd4sum_meanest <- cesd_mean_est %>% 
+  dplyr::select(-X) %>% 
+  rename(FC1 = V4,
+         FC2 = V2, 
+         FC3 = V3, 
+         FC4 = V1, 
+         MC1 = V6, 
+         MC2 = V8, 
+         MC3 = V7, 
+         MC4 = V5)
+
+# Making mean est data long, including gender
+cesd4sum_meanest_long <- cesd4sum_meanest %>% 
+  pivot_longer("FC4":"MC2",
+               names_to = "class",
+               values_to = "mean_cesd_est") %>% 
+  mutate(gender = if_else(class == "FC1" | class == "FC2" | class == "FC3" | class == "FC4",0,1),
+         class = case_when(class == "FC1" | class == "MC1" ~ 1,
+                           class == "FC2" | class == "MC2" ~ 2,
+                           class == "FC3" | class == "MC3" ~ 3,
+                           class == "FC4" | class == "MC4" ~ 4,
+                           TRUE ~ NA_real_))
+
+# Pulling predicted class membership by gender
+# Switching classes to match original classes 
+cesd_cp_mod <- read.csv("/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/SHADE MPlus/LCGA/1LGCA Sum/~Multi-Group Analysis/Outputs/4 Class solution/Full model CESD 2/LCGA_QUAD_CESD_4_PCP_gen_2MISS.csv") %>% 
+  mutate(class = case_when(gender == 0 & class == 4 ~ as.integer(1),
+                           gender == 0 & class == 2 ~ as.integer(2),
+                           gender == 0 & class == 3 ~ as.integer(3),
+                           gender == 0 & class == 1 ~ as.integer(4),
+                           gender == 1 & class == 2 ~ as.integer(1),
+                           gender == 1 & class == 4 ~ as.integer(2),
+                           gender == 1 & class == 3 ~ as.integer(3),
+                           gender == 1 & class == 1 ~ as.integer(4),
+                           TRUE ~ class))
+
+
+# Pulling class counts for figure labels
+# Classes are correct
+cesd_cp_mod %>% mutate(gender = if_else(gender==0,"female","male")) %>% group_by(gender,class) %>% summarise(count=n()) %>% mutate(n_per = 100*(count/sum(count)))
+
+# Pulling shade data and merging with class membership
+shade_dat_class2 <- read_csv("/Users/catherinegimbrone/Documents/RESEARCH/K. Keyes/SHADE Grant Projects/SHADE Data + Code/Data/Mplus LGCA/OG Files/lgca_sum_cesd2.csv") %>% 
+  replace_with_na_all(condition = ~.x == -99) %>% 
+  clean_names() %>% 
+  left_join(cesd_cp_mod, by = c("sid","gender"))
+
+class_dat2 <- shade_dat_class2 %>% 
+  pivot_longer("w1_sum_cesd":"w8_sum_cesd",
+              names_to = "wave", 
+              values_to = "cesd") %>% 
+  group_by(wave, class, gender) %>% 
+dplyr::summarize(n = n(), mean_cesd_act = mean(cesd, na.rm = TRUE)) %>% 
+  arrange(class) %>% 
+  mutate(
+    wave = case_when(wave == "w1_sum_cesd" ~ "cesd_w1",
+                          wave == "w2_sum_cesd" ~ "cesd_w2",
+                          wave == "w3_sum_cesd" ~ "cesd_w3",
+                          wave == "w4_sum_cesd" ~ "cesd_w4",
+                          wave == "w5_sum_cesd" ~ "cesd_w5",
+                          wave == "w6_sum_cesd" ~ "cesd_w6",
+                          wave == "w7_sum_cesd" ~ "cesd_w7",
+                          wave == "w8_sum_cesd" ~ "cesd_w8")
+    ) %>% 
+  left_join(cesd4sum_meanest_long, by = c("wave", "class","gender")) %>% 
+  mutate(cesd_mean_dif = mean_cesd_est - mean_cesd_act,
+         gen_relab = case_when(gender == 0 ~ "Female",
+                               gender == 1 ~ "Male"),
+         dep_lab = if_else(class == 4,"Probable Depression ≥ 16",""),
+         trend_lab = case_when(gender == 0 & class == 1 ~ "Stable",
+                                gender == 0 & class == 2 ~ "Stable",
+                                gender == 0 & class == 3 ~ "Decreasing",
+                                gender == 0 & class == 4 ~ "Arching",
+                                gender == 1 & class == 1 ~ "Stable",
+                                gender == 1 & class == 2 ~ "Increasing",
+                                gender == 1 & class == 3 ~ "Decreasing",
+                                gender == 1 & class == 4 ~ "Increasing")
+         ) %>%
+  relocate("class","wave","cesd_mean_dif","mean_cesd_est", "mean_cesd_act") %>% 
+  filter(!is.na(class))
+
+#######################
+
+# MAKING PLOT
+
+colors <- c("Observed mean" = "darkorange", "Predicted mean" = "blue")
+shapes <- c("Observed mean" = 17, "Predicted mean" = 16)
+new_lab <- c("1" = "Low", "2" = "Mild", "3" = "Moderate", "4" = "High")
+
+tiff("Figure1.tiff", width = 10, height = 6, units = 'in', res = 800)
+ggplot(class_dat2) +                                                                   
+  geom_point(aes(x = wave, y = mean_cesd_act, color = "Observed mean", shape = "Observed mean")) +   
+  geom_point(aes(x = wave, y = mean_cesd_est, color = "Predicted mean", shape = "Predicted mean")) +   
+  geom_hline(aes(yintercept = 16), color = "darkblue", linetype = "dashed") +
+  scale_x_discrete(labels = c("1", "2", "3", "4", "5", "6", "7", "8")) +                        
+  labs(x="Wave", y="CES-D sum score",
+       color = "Legend") +  
+  scale_color_manual(values = colors, name = "test") +
+  scale_shape_manual(values = shapes, name = "test") +
+  theme_bw() +
+  facet_grid(gen_relab ~ class,labeller = labeller(class = new_lab)) +
+  theme(strip.text.x = element_text(size = 12, color = "black", face = "bold"),
+        strip.text.y = element_text(size = 12, color = "black", face = "bold"),
+        title = element_text(size = 16, face = "bold"),
+        axis.text = element_text( size = 14),
+        axis.title = element_text( size = 16, face = "bold"),
+        legend.text = element_text( size = 12),
+        legend.title=element_blank(),
+        strip.background = element_rect(
+     color="black", fill="white", size=.5, linetype="solid")) +
+  geom_text(mapping = aes(x= 6, y = 14, label = dep_lab), color = "darkblue", size = 3,check_overlap = TRUE) +
+  geom_text(mapping = aes(x= 4.5, y = 50, label = trend_lab), color = "black", size = 4,check_overlap = TRUE, fontface = "bold.italic") 
+dev.off()
+```
+

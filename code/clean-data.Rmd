@@ -1,0 +1,364 @@
+---
+title: "Clean Data"
+author: "Stephen Uong; Contributors: Andrew Rundle, Kerry Keyes, Nadav Sprague"
+date: "12/31/2024"
+output: rmarkdown::github_document
+
+---
+
+
+# 1. Set Working Directory
+
+Set the working directory to one folder up from the RMarkdown file for later data export.
+
+```{r setup}
+knitr::opts_knit$set(root.dir = '..') 
+```
+
+
+# 2. Load Required Libraries
+
+Load the following required libraries.
+
+```{r libraries}
+# Data Import, Wrangling
+library(rio)
+library(tidyverse)
+
+# Misc tools
+library(tictoc) # check how long functions take to run
+library(furrr) # parallel processing
+library(clipr) # copy results from R to clipboard
+library(skimr) # more detailed data summaries
+library(janitor)
+library(corrr) # calc correlations with tidy syntax
+
+# Supporting functions
+library(gtools) # quantcut function
+library(lubridate) # format dates
+
+# Missingness
+library(ggmice) # check missingness
+
+# Tables
+library(gt) # to create tables
+library(gtsummary) # create tables
+
+# Regression
+library(nnet) # polytomous regression
+library(multgee) # polytomous GEE regression
+library(broom) # extract model results
+
+# Plotting
+library(ggh4x) # edit facet plot
+library(gghighlight) # highlight significant results
+library(patchwork) # combine plots
+library(ggview) # VERY NEW PACKAGE, PREVIEW PLOTS, + canvas(width, height)
+
+date_today <- str_c('_', format(Sys.time(), '%Y%m%d'))
+```
+
+
+# 3. Import Data
+
+Import the following data:
+
+- Happiness & Health survey - overall data
+
+- Happiness & Health survey - derived depression trajectory classes (from Gimbrone et al)
+
+- GIS - home data: CESD Classes (from Catherine Gimbrone)
+
+```{r import_data}
+surv_prelim <- import('../rundle-shade/data/raw/HH_W1_to_W8_Scored_080917.csv') |> as_tibble()
+shade_school_prelim <- import('../rundle-shade/data/raw/sch_sid_101623.csv') |> as_tibble()
+shade_home_prelim <- import('../rundle-shade/data/raw/hom_sid_101623.csv') |> as_tibble()
+shade_route_prelim <- import('../rundle-shade/data/raw/rte_sid_101623.csv') |> as_tibble()
+cesd_class_prelim <- import('../rundle-shade/data/raw/shade_dat_class_select.csv') |> as_tibble()
+```
+
+
+
+# 4. Clean Data
+```{r clean_data}
+# Function to standardize variable by median and IQR
+std_mediqr <- function(var){
+  (var - median(var,na.rm=TRUE))/IQR(var,na.rm=TRUE)
+}
+
+# Clean: Home
+shade_home <- shade_home_prelim |> 
+  dplyr::filter(adr_hhs_wave_gen_2023 == 1) |>
+  dplyr::transmute(
+    sid = SID,
+    # SES
+      # 500m buffer
+    pov_2015_h5_pct = r5m_a5y_b17020002_pct_2015*100, #  Income in The Past 12 Months Below Poverty Level, 2015
+    inc_2015_h5_med = r5m_a5y_b19013001_med_2015, # Median Household Income in The Past 12 Months, Inflation-adjusted dollars
+      # 1000m buffer
+    pov_2015_h10_pct = r1k_a5y_b17020002_pct_2015*100, 
+    inc_2015_h10_med = r1k_a5y_b19013001_med_2015, 
+    # Public assistance
+    pubfoodasst_2015_h10_pct = r1k_a5y_b19058002_pct_2015*100,
+    # Race and ethnicity
+      # 500m buffer
+    r_asian_2015_h5_pct = r5m_a5y_b03002006_pct_2015*100,
+    r_black_2015_h5_pct = r5m_a5y_b03002004_pct_2015*100,
+    r_hispn_2015_h5_pct = r5m_a5y_b03002012_pct_2015*100,
+    r_white_2015_h5_pct = r5m_a5y_b03002003_pct_2015*100,
+      # 1000m buffer
+    r_asian_2015_h10_pct = r1k_a5y_b03002006_pct_2015*100,
+    r_black_2015_h10_pct = r1k_a5y_b03002004_pct_2015*100,
+    r_hispn_2015_h10_pct = r1k_a5y_b03002012_pct_2015*100,
+    r_white_2015_h10_pct = r1k_a5y_b03002003_pct_2015*100,
+    # Nativity
+    forborn_2015_h10_pct = r1k_a5y_b05012003_pct_2015*100,
+    # Crime
+      # 500m
+    crime_tot_2012_h5_idx = r5m_cri_totc_idx_2012,
+    crime_per_2012_h5_idx = r5m_cri_perc_idx_2012,
+    crime_pro_2012_h5_idx = r5m_cri_proc_idx_2012,
+      # 100m
+    crime_tot_2012_h10_idx = r1k_cri_totc_idx_2012,
+    crime_per_2012_h10_idx = r1k_cri_perc_idx_2012,
+    crime_pro_2012_h10_idx = r1k_cri_proc_idx_2012,
+    # Tree Canopy Cover
+      # TCC
+        # 2011
+    tcc_2011_h5_avg = r5m_tcc_canopy_avg_2011*100, # proportion/average, 2011 (500m buffer)
+    tcc_2011_h5_avg_std = r5m_tcc_canopy_avg_2011 |> std_mediqr(),
+    tcc_2011_h10_avg = r1k_tcc_canopy_avg_2011*100, # proportion/average, 2011 (1000m buffer)
+    tcc_2011_h10_avg_std = r1k_tcc_canopy_avg_2011 |> std_mediqr(),
+        # 2016
+    tcc_2016_h5_avg = r5m_tcc_canopy_avg_2016*100, 
+    tcc_2016_h10_avg = r1k_tcc_canopy_avg_2016*100, 
+      # RCM (RCMAP, Rangeland Condition Monitoring Assessment and Projection)
+    rcm_2013_h5_avg = r5m_rcm_treecov_avg_2013*100, 
+    rcm_2013_h5_avg_std = rcm_2013_h5_avg |> std_mediqr(),
+      # VLC
+    vlc_2016_h5_pct = r5m_vlc_1_pct_2016*100, 
+    vlc_2016_h5_pct_std = vlc_2016_h5_pct |> std_mediqr(),
+      # USE
+    use_2011_h5_pct = (r5m_use_41_pct_2011 + r5m_use_42_pct_2011 + r5m_use_43_pct_2011 + r5m_use_90_pct_2011)*100, 
+    use_2011_h5_pct_std = use_2011_h5_pct |> std_mediqr(),
+    # Green space
+    gsp_2011_h5_pct = (r5m_use_52_pct_2011 + r5m_use_71_pct_2011 + r5m_use_95_pct_2011)*100,
+    gsp_2011_h5_pct_std = gsp_2011_h5_pct |> std_mediqr(),
+    # LST: land surface temperature
+    lst_2013_h5_avg = r5m_lst_ard_avg_2013,
+    lst_2013_h5_avg_std = r5m_lst_ard_avg_2013 |> std_mediqr(),
+    lst_2013_h10_avg = r1k_lst_ard_avg_2013,
+    lst_2013_h10_avg_std = r1k_lst_ard_avg_2013 |> std_mediqr())
+
+
+# Clean: Depressive symptom trajectories
+lvls_cesd_class_orig <- c('Female - Low, Stable',
+                          'Female - Mild, Stable',
+                          'Female - Moderate, Decreasing',
+                          'Female - High, Arching',
+                          'Male - Low, Stable',
+                          'Male - Mild, Increasing',
+                          'Male - Moderate, Decreasing',
+                          'Male - High, Increasing')
+lvls_cesd_class <-      c('Female - Mild, Stable',
+                          'Female - Moderate, Decreasing',
+                          'Female - High, Arching',
+                          'Female - Low, Stable', # moved from first to here
+                          'Male - Mild, Increasing',
+                          'Male - Moderate, Decreasing',
+                          'Male - High, Increasing',
+                          'Male - Low, Stable') # moved from first to here
+lvls_cesd_class_cat3 <- c('Female - Mild, Stable / Moderate, Decreasing',
+                          'Female - High, Arching',
+                          'Female - Low, Stable', 
+                          'Male - Mild, Increasing / Moderate, Decreasing',
+                          'Male - High, Increasing',
+                          'Male - Low, Stable') 
+cesd_class <- cesd_class_prelim |> 
+  dplyr::transmute(
+    sid = sid,
+    # CESD Classes
+    cesd_class_no = dplyr::case_when(
+      mga_class == 'Female - Low, Stable' ~ 1,
+      mga_class == 'Female - Mild, Stable' ~ 2,
+      mga_class == 'Female - Moderate, Decreasing' ~ 3,
+      mga_class == 'Female - High, Arching' ~ 4,
+      mga_class == 'Male - Low, Stable' ~ 1,
+      mga_class == 'Male - Mild, Increasing' ~ 2,
+      mga_class == 'Male - Moderate, Decreasing' ~ 3,
+      mga_class == 'Male - High, Increasing' ~ 4),
+    cesd_class_orig = mga_class |> factor(levels = lvls_cesd_class_orig),
+    cesd_class = mga_class |> factor(levels = lvls_cesd_class),
+    # CESD Classes: binary
+    cesd_class_bin = dplyr::if_else(mga_class == 'Female - Low, Stable' |  mga_class == 'Male - Low, Stable', true = 0, false = 1, missing = NA),
+    # CESD classes: 3 categories 
+      # I think I need to reorder this
+    cesd_class_cat3 = dplyr::case_when(
+      mga_class %in% c('Female - Mild, Stable', 'Female - Moderate, Decreasing') ~ 'Female - Mild, Stable / Moderate, Decreasing',
+      mga_class %in% c('Male - Mild, Increasing', 'Male - Moderate, Decreasing') ~ 'Male - Mild, Increasing / Moderate, Decreasing',
+      TRUE ~ mga_class) |> factor(levels = lvls_cesd_class_cat3))
+
+
+# Clean: Survey data
+lvls_sex <-  c('Female', #0
+               'Male') #1
+lvls_raceeth = c('Asian', #2
+                 'Black or African American', #3
+                 'Hispanic or Latino', #4
+                 'White', #6
+                 'American Indian or Alaska Native, Native Hawaiian or Pacific Islander, Other', #1,5,7
+                 'Multiracial/multiethnic') #8
+lvls_lunch = c('Free lunch', #2
+               'Reduced-cost lunch', #1
+               'No assistance') #0
+lvls_education = c('Less than high school degree', #1
+                   'High school degree', #2
+                   'Some college', #3
+                   'College degree or more') #4
+surv_sub <- surv_prelim |> 
+  dplyr::transmute(
+    sid = SID,
+    # School, teacher, period (W1)
+    grp_school = w1_school |> factor(),
+    grp_teacher = str_c(w1_school, w1_teacher, sep = '_') |> factor(),
+    grp_period = str_c(w1_school, w1_teacher, w1_period, sep = '_') |> factor(),
+    # Sex
+    sex = dplyr::case_when(
+      Gender == 0 ~ lvls_sex[1],
+      Gender == 1 ~ lvls_sex[2]) |> factor(levels = lvls_sex),
+    # Race and ethnicity
+    raceeth = dplyr::case_when(
+      W1_DEM_Ethnicity == 2          ~ lvls_raceeth[1],
+      W1_DEM_Ethnicity == 3          ~ lvls_raceeth[2],
+      W1_DEM_Ethnicity == 4          ~ lvls_raceeth[3],
+      W1_DEM_Ethnicity == 6          ~ lvls_raceeth[4],
+      W1_DEM_Ethnicity %in% c(1,5,7) ~ lvls_raceeth[5],
+      W1_DEM_Ethnicity == 8          ~ lvls_raceeth[6]) |> factor(levels = lvls_raceeth),
+    # Nativity
+    forborn_mom = dplyr::if_else(W5_DEM_Momborn == 99, NA, W5_DEM_Momborn),
+    forborn_dad = dplyr::if_else(W5_DEM_Dadborn == 99, NA, W5_DEM_Dadborn),
+    # School-level lunch assistance
+    lunch_school_red = W1_School_Reduced_Lunch,
+    # Lunch assistance
+    lunch = dplyr::case_when(
+      W3_DEM_Lunch == 2 ~ lvls_lunch[1],
+      W3_DEM_Lunch == 1 ~ lvls_lunch[2],
+      W3_DEM_Lunch == 0 ~ lvls_lunch[3]) |> factor(levels = lvls_lunch),
+    # Highest parental education
+    education = dplyr::case_when(
+      W1_DEM_High_Par_Edu %in% c(1,2) ~ lvls_education[1],
+      W1_DEM_High_Par_Edu == 3        ~ lvls_education[2],
+      W1_DEM_High_Par_Edu == 4        ~ lvls_education[3],
+      W1_DEM_High_Par_Edu %in% c(5,6) ~ lvls_education[4],
+      W1_DEM_High_Par_Edu == 0        ~ NA) |> factor(levels = lvls_education),
+    # Survey Dates
+    date_survey1 = W1_Survey_Date |> lubridate::mdy(),
+    date_survey2 = W2_Survey_Date |> lubridate::mdy(),
+    date_survey3 = W3_Survey_Date |> lubridate::mdy(),
+    date_survey4 = W4_Survey_Date |> lubridate::mdy(),
+    date_survey5 = W5_Survey_Date |> lubridate::mdy(),
+    date_survey6 = W6_Survey_Date |> lubridate::mdy(),
+    date_survey7 = W7_Survey_Date |> lubridate::mdy(),
+    date_survey8 = W8_Survey_Date |> lubridate::mdy(),
+    yr_survey1 = date_survey1 |> format('%Y') |> as.numeric(),
+    yr_survey2 = date_survey2 |> format('%Y') |> as.numeric(),
+    yr_survey3 = date_survey3 |> format('%Y') |> as.numeric(),
+    yr_survey4 = date_survey4 |> format('%Y') |> as.numeric(),
+    yr_survey5 = date_survey5 |> format('%Y') |> as.numeric(),
+    yr_survey6 = date_survey6 |> format('%Y') |> as.numeric(),
+    yr_survey7 = date_survey7 |> format('%Y') |> as.numeric(),
+    yr_survey8 = date_survey8 |> format('%Y') |> as.numeric()) 
+
+### MERGE
+propyr_school <- ((7/24)*(180))/365 # 7 hours school/day, 180 min days of year
+
+shade <- surv_sub |> 
+  dplyr::select(sid, grp_school, grp_teacher, grp_period, sex, raceeth, education, lunch,
+                forborn_mom, forborn_dad, lunch_school_red) |>  # imputation vars
+  dplyr::left_join(shade_home, by = 'sid') |> 
+  dplyr::left_join(cesd_class, by = 'sid')
+
+# Drop those missing outcome data & create quantiles (because want to create based of the final number of rows)
+shade_clean <- shade |> 
+  dplyr::filter(!is.na(cesd_class)) |>  # drop 3 with missing CESD class
+  dplyr::mutate(tcc_2011_h5_avg_q  = tcc_2011_h5_avg  |> gtools::quantcut(4),
+                tcc_2011_h10_avg_q = tcc_2011_h10_avg |> gtools::quantcut(4),
+                # nb confounding vars
+                inc_2015_h5_med_q = inc_2015_h5_med |> gtools::quantcut(4),
+                r_black_2015_h5_pct_q = r_black_2015_h5_pct |> gtools::quantcut(4),
+                r_hispn_2015_h5_pct_q = r_hispn_2015_h5_pct |> gtools::quantcut(4),
+                crime_tot_2012_h5_idx_q = crime_tot_2012_h5_idx |> gtools::quantcut(4)) # create quantiles
+
+```
+
+# 5. Impute Data
+```{r}
+### Some stats
+shade_clean |> nrow() # 3393
+shade_clean |> drop_na(lunch, education, raceeth) |> nrow() # 2415
+(3393 - 2415)/3393 # 978 (28.8%)
+
+### PRELIMINARY SETUP
+shade_imp_prelim_df <- shade_clean |> 
+  dplyr::mutate(rowno = row_number())
+
+imp_df_prelim <- shade_imp_prelim_df |> 
+  dplyr::select(tcc_2011_h10_avg,
+                cesd_class, sex,
+                raceeth, lunch, education,
+                pov_2015_h10_pct, 
+                # added
+                forborn_mom, forborn_dad, lunch_school_red,
+                pubfoodasst_2015_h10_pct, r_asian_2015_h5_pct, r_black_2015_h5_pct, 
+                r_hispn_2015_h5_pct, forborn_2015_h10_pct)
+
+
+### IMPUTE DATA (MICE)
+# FCS Model using MICE
+library(mice)
+library(tictoc)
+tic()
+n_imp <- 50
+impres_shade <- futuremice(data = imp_df_prelim, m = n_imp, method = "pmm", parallelseed = 100,
+                           n.core = 5) 
+toc()
+
+### CLEAN IMPUTED DATA
+# Function
+clean_imp <- function(impres, impvar, lvls_impvar, orig_df){
+  imp_df <- impres |> 
+    purrr::pluck('imp', impvar) |> 
+    tibble::as_tibble(rownames = 'rowno') |> 
+    dplyr::mutate(rowno = rowno |> as.numeric()) |> 
+    dplyr::rename_with(.cols = !rowno, .fn = \(x) paste0(impvar, x))
+  orig_df |> 
+    dplyr::select(all_of(c('rowno', impvar))) |> 
+    dplyr::left_join(imp_df, by = 'rowno') |>
+    dplyr::mutate_at(vars(!c('rowno', impvar)), \(x) x |> factor(levels = {{lvls_impvar}})) |> 
+    dplyr::mutate_at(vars(!c('rowno', impvar)), ~dplyr::if_else(is.na(.), !!rlang::ensym(impvar), .)) |> 
+    dplyr::select(-impvar)
+}
+# Clean
+shade_imp_df <- impres_shade |> clean_imp(impvar = 'raceeth', lvls_impvar = lvls_raceeth, orig_df = shade_imp_prelim_df) |> 
+  dplyr::left_join(impres_shade |> clean_imp(impvar = 'lunch', lvls_impvar = lvls_lunch, 
+                                              orig_df = shade_imp_prelim_df), by = 'rowno') |> 
+  dplyr::left_join(impres_shade |> clean_imp(impvar = 'education', lvls_impvar = lvls_education, 
+                                               orig_df = shade_imp_prelim_df) , by = 'rowno')
+
+```
+
+
+# 6. Export Data
+```{r}
+saveRDS(object = shade_clean, file = str_c("data/shade_clean", date_today, ".RDS"))
+saveRDS(object = shade_imp_df, file = str_c("data/shade_imp_df", date_today, ".RDS"))
+saveRDS(object = shade_imp_prelim_df, file = str_c("data/shade_imp_prelim_df", date_today, ".RDS"))
+
+
+```
+
+
+
+
+
+

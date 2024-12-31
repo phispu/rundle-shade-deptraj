@@ -1,0 +1,63 @@
+   TITLE:
+    SHADE H&H Multi-Group LCGA - 4 class quad; !CHANGE ME
+    DATA:
+    file = "/Users/catherinegimbrone/Desktop/lgca_sum_gen.csv";
+    VARIABLE:
+    names =
+    sid
+    gender
+    cesd_w1
+    cesd_w2
+    cesd_w3
+    cesd_w4
+    cesd_w5
+    cesd_w6
+    cesd_w7
+    cesd_w8;
+
+    USEVARIABLES ARE gender cesd_w1 cesd_w2 cesd_w3 cesd_w4
+    cesd_w5 cesd_w6 cesd_w7 cesd_w8;
+
+    CLASSES = cg(2) c(4); !2 known groups, 4 class solution
+
+    KNOWNCLASS = cg (gender = 0, gender = 1); !known groups (0 = F, 1 = M)
+
+    IDVARIABLE = sid;
+
+    MISSING ARE ALL (-99);
+
+    SAVEDATA:
+
+    FILE IS /Users/catherinegimbrone/Desktop/CESD_4Q_MG_CP.dat; !CHANGE ME
+    save = cprobabilities;
+
+    ANALYSIS:
+    type = MIXTURE;
+    LRTBOOTSTRAP = 20; !number of bootstrap draws for TECH14;
+    STARTS = 500 20; !number of initial stage starts and number of final stage optimizations
+    ITERATIONS = 20; !number of initial stage iterations
+    LRTSTARTS = 0 0 100 50; !number of initial stage starts and number of final stage optimi
+
+    MODEL:
+    %OVERALL%
+    i s q| cesd_w1@0 cesd_w2@6.5 cesd_w3@12 cesd_w4@18
+    cesd_w5@23.5 cesd_w6@30 cesd_w7@35.5 cesd_w8@41.5;
+    cesd_w1 cesd_w2 cesd_w3 cesd_w4 cesd_w5 cesd_w6 cesd_w7 cesd_w8 (resvar);
+    i-q@0;
+
+    model cg:
+    %cg#1%
+    i s q| cesd_w1@0 cesd_w2@6.5 cesd_w3@12 cesd_w4@18
+    cesd_w5@23.5 cesd_w6@30 cesd_w7@35.5 cesd_w8@41.5;
+    i-q@0;
+
+    %cg#2%
+    i s q| cesd_w1@0 cesd_w2@6.5 cesd_w3@12 cesd_w4@18
+    cesd_w5@23.5 cesd_w6@30 cesd_w7@35.5 cesd_w8@41.5;
+    i-q@0;
+
+    OUTPUT:
+    sampstat tech1 tech8;
+
+    PLOT: type=plot3;
+          series = cesd_w1 cesd_w2 cesd_w3 cesd_w4 cesd_w5 cesd_w6 cesd_w7 cesd_w8(s);

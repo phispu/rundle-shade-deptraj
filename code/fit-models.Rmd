@@ -1,0 +1,1877 @@
+---
+title: "Fit Models"
+author: "Stephen Uong; Contributors: Andrew Rundle, Kerry Keyes, Nadav Sprague"
+date: "12/31/2024"
+output: rmarkdown::github_document
+
+---
+
+
+# 1. Set Working Directory
+
+Set the working directory to one folder up from the RMarkdown file for later data export.
+
+```{r setup}
+knitr::opts_knit$set(root.dir = '..') 
+```
+
+
+# 2. Load Required Libraries
+
+Load the following required libraries.
+
+```{r libraries}
+library(tidyverse)
+library(rio)
+library(janitor)
+```
+
+
+# 3. Import Data
+
+Import the following data:
+
+- Data Source 1
+
+- Data Source 2
+
+```{r import_data}
+df <- import('raw/______')
+```
+
+
+# 6. Multivariable Analyses
+
+
+### S Table 2
+```{r}
+
+tcc_q_df <- shade_imp_prelim_df |>
+  dplyr::select(rowno, tcc_2011_h5_avg_q)
+
+shade_imp_long <- shade_imp_df |> 
+  dplyr::left_join(tcc_q_df, by = "rowno") |> 
+  tidyr::pivot_longer(cols = -rowno,
+                      names_to = c(".value", "imp"),
+                      names_pattern = "^([a-z]+)(\\d+)")
+
+shade_imp_long |> 
+  count(raceeth) |> 
+  
+  
+freq_table <- function(vars){
+  df |> 
+  dplyr::mutate(perc = prop.table(n) * 100,
+                n = n/50,
+                n_perc = str_c(n |> round(0) |> format(nsmall = 0), " (", 
+                               perc |> round(2), "%)")) |> 
+  dplyr::select(raceeth, n_perc) |> 
+  clipr::write_clip()
+}
+
+```
+
+
+## S Fig 1: TCC distribution
+```{r}
+lab_tcc <- c("tcc_2011_h5_avg" = "Tree Canopy Cover\n(500m)", 
+             "tcc_2011_h10_avg" = "Tree Canopy Cover\n(1,000m)")
+
+# Histograms
+shade_clean |> names()
+
+shade_long_tcc <- shade_clean |> 
+  tidyr::pivot_longer(cols = c("tcc_2011_h5_avg", "tcc_2011_h10_avg"),
+                      names_to = "tcc_var",
+                      values_to = "tcc_val") |> 
+  dplyr::mutate(tcc_var = tcc_var |> factor(levels = names(lab_tcc)))
+
+shade_clean |> 
+  dplyr::select(tcc_2011_h5_avg, tcc_2011_h10_avg) |>
+  skimr::skim()
+
+plot_hist <- shade_long_tcc |> 
+  ggplot(aes(x = tcc_val)) +
+  geom_histogram() + 
+  facet_grid(~ tcc_var, 
+             labeller = labeller(tcc_var = lab_tcc)) +
+  labs(x = "Tree Canopy Cover (%)", y = "Number of Participants") +
+  scale_x_continuous(limits = c(0, 13)) +
+  theme_minimal()
+
+
+plot_box <- shade_long_tcc |> 
+  ggplot(aes(x = tcc_val)) +
+  geom_boxplot(width = 100) + 
+  facet_grid(~ tcc_var) +
+  labs(x = "Tree Canopy Cover (%)", y = "") +
+  theme_minimal() +
+  scale_x_continuous(limits = c(0, 13)) +
+  theme(strip.text = element_blank(),
+        axis.text.y = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+
+
+plot_tcc_dist <- plot_hist / plot_box + 
+  patchwork::plot_layout(heights = c(4, 1), axes = "collect")
+plot_tcc_dist
+
+
+ggsave(plot = plot_tcc_dist, filename = "comms/figures/sfig1_20241008.png", 
+       width = 5, height = 4)
+
+```
+
+## S Fig 2: Depression Trajectory Plots
+```{r}
+##### CESD OVER TIME
+shade_clean |> dplyr::select(contains("cesd"))
+surv_prelim |> dplyr::select(contains("W1_CESD_Total_Sum"))
+
+lvls_cesd_class <- c("Low", "Mild", "Moderate", "High")
+
+cesd_df <- surv_prelim |> 
+  dplyr::inner_join(shade_clean, by = c("SID" = "sid")) |> 
+  dplyr::transmute(cesd_class = cesd_class,
+                   cesd_class_no,
+                   cesd_class_no_lab = case_when(
+                     cesd_class_no == 1 ~ lvls_cesd_class[1],
+                     cesd_class_no == 2 ~ lvls_cesd_class[2],
+                     cesd_class_no == 3 ~ lvls_cesd_class[3],
+                     cesd_class_no == 4 ~ lvls_cesd_class[4]) |> factor(levels = lvls_cesd_class),
+                   sex = sex,
+                   mh_cesd_1_sum = W1_CESD_Total_Sum,
+                   mh_cesd_2_sum = W2_CESD_Total_Sum,
+                   mh_cesd_3_sum = W3_CESD_Total_Sum,
+                   mh_cesd_4_sum = W4_CESD_Total_Sum,
+                   mh_cesd_5_sum = W5_CESD_Total_Sum,
+                   mh_cesd_6_sum = W6_CESD_Total_Sum,
+                   mh_cesd_7_sum = W7_CESD_Total_Sum,
+                   mh_cesd_8_sum = W8_CESD_Total_Sum) |> 
+  tidyr::pivot_longer(cols = contains("mh_cesd") & contains("sum"),
+                      names_to = "wave",
+                      names_pattern = "mh_cesd_(\\d+)_sum",
+                      values_to = "cesd_sum")
+
+cesd_df_sum <- cesd_df |> 
+  dplyr::group_by(cesd_class_no_lab, sex, wave) |> 
+  dplyr::summarize(cesd_sum = mean(cesd_sum, na.rm = TRUE))
+
+
+# plot
+  # sum
+plot_sfig2 <- cesd_df_sum |> 
+  ggplot(aes(x = wave, y = cesd_sum, group = sex)) +
+  geom_point() +
+  geom_line() +
+  facet_grid(sex ~ cesd_class_no_lab) +
+  theme_minimal() +
+  labs(x = "Wave", y = "Mean CES-D Sum Score")
+
+
+ggsave(plot = plot_sfig2, 
+       filename = "comms/figures/sfig2_20241018.png", 
+       width = 8, height = 4)
+
+
+
+
+```
+
+
+
+
+### 6.1.2. Fig 2: Fit Models
+```{r}
+##### CREATE FUNCTIONS NEEDED ##### 
+# Functions to allow mapping to continue despite model errors/models that do not converge
+multgee_wrapped <- function(formula, ...) {
+  args <- list(formula = formula, ...)
+  do.call(multgee::nomLORgee, args)
+}
+possible_multgee <- purrr::possibly(multgee_wrapped, otherwise = NA)
+# Extract model results
+tidy_nomgee_imp <- function(mod){
+  mod |> 
+    summary() |> 
+    purrr::pluck('coefficients') |> 
+    dplyr::as_tibble(rownames = 'var') |> 
+    purrr::possibly(dplyr::transmute)(  # to avoid errors with empty cells
+      term     = var,
+      imp_est  = Estimate,
+      imp_se   = san.se,
+      imp_z    = san.z,
+      imp_pval = `Pr(>|san.z|)`)
+}
+
+extract_modres_imp <- function(df, mod, n_imp_used){
+  df |> 
+    dplyr::select(-data) |> 
+    dplyr::mutate(modres = purrr::map(({{mod}}), tidy_nomgee_imp)) |> 
+    tidyr::unnest(modres) |> 
+    dplyr::filter(str_detect(term,'treecan_val')) |>
+    dplyr::select(-{{mod}}) |> 
+    dplyr::group_by(sex, measure, env, term) |> 
+    dplyr::summarize(est        = imp_est |> mean(),
+                     var_within = imp_se |> magrittr::raise_to_power(2) |> mean(),
+                     var_btwn   = imp_est |> var(),
+                     var        = var_within + var_btwn + var_btwn/n_imp_used,
+                     se         = var |> sqrt()) |> 
+    dplyr::ungroup() 
+}
+
+##### DATA PREP ##### 
+lvls_env <- c('Home (500m)',
+              'Home (1000m)')
+# Change to long format
+shade_long_imp <- shade_imp_prelim_df |> 
+  dplyr::select(-c(raceeth, lunch, education)) |> 
+  dplyr::left_join(shade_imp_df, by = 'rowno') |>
+  # Pivot to long format
+    # imputation
+  tidyr::pivot_longer(cols = dplyr::matches('raceeth|education|lunch[0-9]'),
+                      names_to = c('.value', 'imp'),
+                      names_pattern = '([a-z]+)([0-9]+)') |> 
+    # TCC vars
+  tidyr::pivot_longer(cols = c('tcc_2011_h5_avg_std', 'tcc_2011_h10_avg_std'),
+                      names_to = 'treecan_var', values_to = "treecan_val") |> 
+  # Split summary variable to two columns
+  tidyr::separate_wider_delim(treecan_var, delim = "_", names = c("measure","yr","env_short"), too_many = "drop") |> 
+  # Recode variables
+  dplyr::mutate(
+    # Create new nb columns dependent on TCC var
+    inc = dplyr::case_when(
+      env_short %in% c('h5','s7') ~ inc_2015_h5_med, 
+      env_short %in% c('h10')     ~ inc_2015_h10_med),
+    nb_black = dplyr::case_when(
+      env_short %in% c('h5','s7') ~ r_black_2015_h5_pct, 
+      env_short %in% c('h10')     ~ r_black_2015_h10_pct),
+    nb_hisp = dplyr::case_when(
+      env_short %in% c('h5','s7') ~ r_hispn_2015_h5_pct, 
+      env_short %in% c('h10')     ~ r_hispn_2015_h10_pct),
+    crime_tot = dplyr::case_when(
+      env_short %in% c('h5','s7') ~ crime_tot_2012_h5_idx, 
+      env_short %in% c('h10')     ~ crime_tot_2012_h10_idx),
+    # Recode environmental variables
+    env = dplyr:::case_when(
+      env_short == 'h5'  ~ lvls_env[1],
+      env_short == 'h10' ~ lvls_env[2]) |> 
+      factor(levels = lvls_env)) |> 
+  dplyr::relocate(c(measure,yr,env,treecan_val),.after = sid)
+
+
+##### FIT MODELS (different sets b/c different nb SES adjustment vars)
+## Setup and checks
+# Parallel processing preliminary setup
+future::availableCores() # 16
+future::plan(multisession, workers = 6)
+nbrOfWorkers()
+
+# Check TCC & SES var missingness
+shade_long_imp |> filter(!is.na(treecan_val) & is.na(inc)) # 0 rows
+# Create nested data
+shade_long_imp_nest <- shade_long_imp |> 
+  dplyr::select(cesd_class_orig, grp_school, # extra stuff
+                imp, sex, measure, env,
+                cesd_class, treecan_val, grp_teacher, grp_period,
+                raceeth, education, lunch, 
+                gsp_2011_h5_pct_std,
+                inc, nb_black, nb_hisp, crime_tot) |> 
+  # Remove missing
+  dplyr::filter(!is.na(treecan_val)) |>
+  dplyr::group_by(imp, sex, measure, env) |> 
+  tidyr::nest() |> 
+  dplyr::ungroup() |> 
+  dplyr::mutate(data = purrr::map(data, \(x)
+                                  x |> dplyr::mutate(cesd_class = fct_drop(cesd_class))))
+
+#### testing:
+### imp 1, Female, 500m buffer
+# teacher / independence / orig CESD: 11.5 sec
+# teacher / independence / orig CESD drop fct: 11 sec: not sure if this really makes a diff but maybe
+# teacher / independence / orig CESD drop fct / 2way: 14 sec
+# school / independence / orig CESD drop fct: takes forever
+# period / independence / orig CESD drop fct: 1 sec 
+# period / time exchangeable / orig CESD drop fct: 3728.15 
+# teacher / time exchangeable / orig CESD drop fct: still running after 3 hours
+
+### res (teacher / time exchangeable):
+# model 1, 10 imp: teacher / time exchangeable: 44744.97 seconds, ~12.5 hours
+# model 2, 2 imp: 12518.8, ~3.5 hours
+# model 3:, 2 imp:  8437.33 seconds, about 2 hours 20 min
+
+
+# 1. Crude, 302977.98 sec (3.5 days)
+tic()
+mod1 <- shade_long_imp_nest |> 
+  dplyr::mutate(mod = furrr::future_map(data, ~multgee::nomLORgee(cesd_class ~ treecan_val, 
+                                                                  id = grp_period, LORstr = "time.exch", 
+                                                                  data = .), .options = furrr_options(seed = TRUE)) |> 
+                                               butcher::butcher()) 
+toc()
+# saveRDS(mod1, 'data/processed/models/mod1-20240616.RDS')
+mod1_res <- mod1 |> extract_modres_imp(mod = mod, n_imp_used = 50)
+
+# 2. Adj: ind, 557571.88 sec (6.5 days)
+tic()
+mod2 <- shade_long_imp_nest |> 
+  dplyr::mutate(mod = furrr::future_map(data, ~multgee::nomLORgee(cesd_class ~ treecan_val +
+                                                                  raceeth + education + lunch, 
+                                                                  id = grp_period, LORstr = "time.exch", 
+                                                                  data = .), .options = furrr_options(seed = TRUE)) |> 
+                                               butcher::butcher()) 
+toc()
+# saveRDS(mod2, 'data/processed/models/mod2-20240620.RDS')
+mod2_res <- mod2 |> extract_modres_imp(mod = mod, n_imp_used = 50)
+# 3. Adj: ind + nb vars (inc + %Black + % Hispanic + CrimeTot): 193121.67 sec / 2.2 days
+  # OLD: 8437.33 seconds, about 2 hours 20 min
+tic()
+mod3 <- shade_long_imp_nest |> 
+  dplyr::mutate(mod = furrr::future_map(data, ~multgee::nomLORgee(cesd_class ~ treecan_val +
+                                                                  raceeth + education + lunch +
+                                                                  inc + nb_black + nb_hisp + crime_tot, 
+                                                                  id = grp_period, LORstr = "time.exch", 
+                                                                  data = .), .options = furrr_options(seed = TRUE)) |> 
+                                               butcher::butcher()) 
+toc()
+mod3_res <- mod3 |> extract_modres_imp(mod = mod, n_imp_used = 50)
+# saveRDS(mod3, 'data/processed/models/mod3-20240624.RDS')
+
+## Read in models
+# mod1 <- readRDS('data/processed/models/mod1-20240616.RDS')
+# mod2 <- readRDS('data/processed/models/mod2-20240620.RDS')
+# mod3 <- readRDS('data/processed/models/mod3-20240624.RDS')
+
+
+  ##### COMBINE MODEL RESULTS ##### 
+lvls_modlab <- c('Mod 1: Crude', # 1
+                 'Mod 2: Adjusted\nInd', # 2
+                 'Mod 3: Adjusted\nInd + Nb') # 3
+lvls_outcome <- c('Mild, Stable','Mild, Increasing',
+                  'Moderate, Decreasing',
+                  'High, Arching','High, Increasing')
+
+# Set plot param
+size_text <- 13
+size_lab <- 4
+xmin_plot <- 0.2
+x_lab <- 0.42
+x_vline <- 0.45
+xmin_breaks <- 0.5
+xmax_plot <- 1.4
+
+
+fig2_df <- dplyr::bind_rows(
+    mod1_res  |> dplyr::mutate(modlab = lvls_modlab[1]),
+    mod2_res  |> dplyr::mutate(modlab = lvls_modlab[2]),
+    mod3_res  |> dplyr::mutate(modlab = lvls_modlab[3])) |>
+  dplyr::mutate(
+    modlab  = modlab |> factor(levels = lvls_modlab),
+    or      = est |> exp(),
+    cl_low  = exp(est - 1.959964*se), 
+    cl_high = exp(est + 1.959964*se),
+    or_cl   = stringr::str_c(
+      or |> round(2) |> format(2),' (',
+      cl_low |> round(2) |> format(2),',',
+      cl_high |> round(2) |> format(2),')') |> str_pad(width = 15, side = "left", pad = " "),
+    outcome = dplyr::case_when(
+      sex == 'Female' & term == 'treecan_val:1' ~ lvls_outcome[1],
+      sex == 'Male'   & term == 'treecan_val:1' ~ lvls_outcome[2],
+                        term == 'treecan_val:2' ~ lvls_outcome[3],
+      sex == 'Female' & term == 'treecan_val:3' ~ lvls_outcome[4],
+      sex == 'Male'   & term == 'treecan_val:3' ~ lvls_outcome[5]) |> factor(levels = lvls_outcome),
+    cl_high_capped = ifelse(cl_high > xmax_plot, xmax_plot, NA),
+    sig = if_else(cl_high < 1 | cl_low > 1, 'Significant', 'Non-Significant')) |> 
+  dplyr::relocate(modlab, .before = sex) |> 
+  dplyr::relocate(c(or, cl_low, cl_high, or_cl), .before = est)
+
+##### PLOT ##### 
+# Checks to inform plot param
+fig2_df |> summarize(min(cl_low)) # 0.484
+fig2_df |> summarize(max(cl_high)) # 1.35
+
+
+# Plot
+fig2_500m <- fig2_df |> 
+  dplyr::filter(env == "Home (500m)") |> 
+  ggplot(aes(x = or, y = outcome)) + # color = sig
+  geom_point() +
+  geom_text(aes(label = or_cl, x = x_lab), hjust = 1, size = size_lab) + # x = -0.1
+  geom_errorbar(aes(xmin = cl_low, xmax = cl_high)) +
+  geom_vline(aes(xintercept = x_vline), alpha = 0.5) + # Vline: btwn label & plot
+  geom_vline(xintercept = 1, linetype = 2, alpha = 0.5) + # Vline: null
+  ggh4x::facet_nested(modlab + sex ~ env, switch = "y", strip = strip_nested(size = "variable"), scales = "free") + 
+  labs(x = 'Odds Ratio', 
+       y = 'Model Set',
+       tag = "CESD Class\n(Ref = Low, Stable)") + 
+  guides(color = 'none') +
+  theme_bw() +
+  theme(text = element_text(size = size_text),
+        axis.line = element_line(color = "grey50"),
+        axis.text.y = element_text(hjust = 0),
+        plot.tag = element_text(size = size_text - 3,
+                                hjust = 0.5),
+        plot.tag.position = c(x = 0.285, y = 0.975), # x = 0.175
+        strip.placement = "outside",
+        strip.text.y.left = element_text(angle = 90, hjust = 0.5),
+        ggh4x.facet.nestline = element_line(color = 'white', linetype = 1, linewidth = 1.5)) +
+  scale_y_discrete(limits = rev, drop = TRUE) +
+  scale_x_continuous(trans = 'log10', 
+                     limits       = c(xmin_plot, xmax_plot),
+                     breaks       = seq(xmin_breaks, xmax_plot, 0.2), 
+                     minor_breaks = seq(xmin_breaks, xmax_plot, 0.1)) 
+
+fig2_1000m <- fig2_df |> 
+  dplyr::filter(env == "Home (1000m)") |> 
+  ggplot(aes(x = or, y = outcome)) + # color = sig
+  geom_point() +
+  geom_text(aes(label = or_cl, x = x_lab), hjust = 1, size = size_lab) + # x = -0.1
+  geom_errorbar(aes(xmin = cl_low, xmax = cl_high)) +
+  geom_vline(aes(xintercept = x_vline), alpha = 0.5) + # Vline: btwn label & plot
+  geom_vline(xintercept = 1, linetype = 2, alpha = 0.5) + # Vline: null
+  ggh4x::facet_nested(modlab + sex ~ env, switch = "y", strip = strip_nested(size = "variable"), scales = "free") + 
+  labs(x = 'Odds Ratio', 
+       y = 'Model Set') + 
+  guides(color = 'none') +
+  theme_bw() +
+  theme(text = element_text(size = size_text),
+        axis.line = element_line(color = "grey50"),
+        axis.text.y = element_text(hjust = 0),
+        strip.placement = "outside",
+        strip.text.y.left = element_text(angle = 90, hjust = 0.5),
+        ggh4x.facet.nestline = element_line(color = 'white', linetype = 1, linewidth = 1.5)) +
+  scale_y_discrete(limits = rev, drop = TRUE) +
+  scale_x_continuous(trans = 'log10', 
+                     limits       = c(xmin_plot, xmax_plot),
+                     breaks       = seq(xmin_breaks, xmax_plot, 0.2), 
+                     minor_breaks = seq(xmin_breaks, xmax_plot, 0.1)) 
+
+# Combine plots
+fig2 <- fig2_500m / fig2_1000m + plot_layout(axes = "collect") 
+
+  
+
+
+### EXPORT
+ggsave(plot = fig2,
+       filename = paste0('comms/figures/fig2',date_today,'.png'), height = 9, width = 6.5)
+
+export(fig2_df, paste0('comms/tables/fig2-df',date_today,'.csv'))
+
+```
+
+### 6.1.2. S Fig 1 - Complete Case
+NEED TO CLEAN UP
+```{r}
+##### CREATE FUNCTIONS NEEDED ##### 
+# Functions to allow mapping to continue despite model errors/models that do not converge
+multgee_wrapped <- function(formula, ...) {
+  args <- list(formula = formula, ...)
+  do.call(multgee::nomLORgee, args)
+}
+possible_multgee <- purrr::possibly(multgee_wrapped, otherwise = NA)
+# Extract model results
+tidy_nomgee <- function(mod){
+  mod |> 
+    summary() |> 
+    purrr::pluck('coefficients') |> 
+    dplyr::as_tibble(rownames = 'var') |> 
+    purrr::possibly(dplyr::transmute)(  # to avoid errors with empty cells
+      term = var,
+      est  = Estimate,
+      se   = san.se,
+      z    = san.z,
+      pval = `Pr(>|san.z|)`)
+}
+
+extract_modres <- function(df, mod){
+  df |> 
+    dplyr::select(-data) |> 
+    dplyr::mutate(modres = purrr::map(({{mod}}), tidy_nomgee)) |> 
+    tidyr::unnest(modres) |> 
+    dplyr::filter(str_detect(term,'treecan_val')) |>
+    dplyr::select(-{{mod}}) 
+}
+
+##### DATA PREP ##### 
+lvls_env <- c('Home (500m)',
+              'Home (1000m)')
+# Change to long format
+shade_clean 
+
+shade_long_cc <- shade_clean |> 
+  # Pivot to long format
+    # TCC vars
+  tidyr::pivot_longer(cols = c('tcc_2011_h5_avg_std', 'tcc_2011_h10_avg_std'),
+                      names_to = 'treecan_var', values_to = "treecan_val") |> 
+  # Split summary variable to two columns
+  tidyr::separate_wider_delim(treecan_var, delim = "_", names = c("measure","yr","env_short"), too_many = "drop") |> 
+  # Recode variables
+  dplyr::mutate(
+    # Create new nb columns dependent on TCC var
+    inc = dplyr::case_when(
+      env_short %in% c('h5','s7') ~ inc_2015_h5_med, 
+      env_short %in% c('h10')     ~ inc_2015_h10_med),
+    nb_black = dplyr::case_when(
+      env_short %in% c('h5','s7') ~ r_black_2015_h5_pct, 
+      env_short %in% c('h10')     ~ r_black_2015_h10_pct),
+    nb_hisp = dplyr::case_when(
+      env_short %in% c('h5','s7') ~ r_hispn_2015_h5_pct, 
+      env_short %in% c('h10')     ~ r_hispn_2015_h10_pct),
+    crime_tot = dplyr::case_when(
+      env_short %in% c('h5','s7') ~ crime_tot_2012_h5_idx, 
+      env_short %in% c('h10')     ~ crime_tot_2012_h10_idx),
+    # Recode environmental variables
+    env = dplyr:::case_when(
+      env_short == 'h5'  ~ lvls_env[1],
+      env_short == 'h10' ~ lvls_env[2]) |> 
+      factor(levels = lvls_env)) |> 
+  dplyr::relocate(c(measure,yr,env,treecan_val), .after = sid) |> 
+  # Drop missing rows for complete case analysis
+  tidyr::drop_na(raceeth, education, lunch, 
+                 inc, nb_black, nb_hisp, crime_tot)
+
+
+##### FIT MODELS (different sets b/c different nb SES adjustment vars)
+## Setup and checks
+# Check TCC & SES var missingness
+shade_long_cc |> filter(!is.na(treecan_val) & is.na(inc)) # 0 rows
+# Create nested data
+shade_long_cc_nest <- shade_long_cc |> 
+  dplyr::select(cesd_class_orig, grp_school, # extra stuff
+                sex, measure, env,
+                cesd_class, treecan_val, grp_teacher, grp_period,
+                raceeth, education, lunch, 
+                inc, nb_black, nb_hisp, crime_tot) |> 
+  # Remove missing
+  dplyr::filter(!is.na(treecan_val)) |>
+  dplyr::group_by(sex, measure, env) |> 
+  tidyr::nest() |> 
+  dplyr::ungroup() |> 
+  dplyr::mutate(data = purrr::map(data, \(x)
+                                  x |> dplyr::mutate(cesd_class = fct_drop(cesd_class))))
+
+## Run models
+# 1. Crude
+mod1_cc <- shade_long_cc_nest |> 
+  dplyr::mutate(mod = purrr::map(data, ~multgee::nomLORgee(cesd_class ~ treecan_val, 
+                                                           id = grp_period, LORstr = "time.exch", 
+                                                           data = .)) |> 
+                                               butcher::butcher()) 
+mod1_res_cc <- mod1_cc |> extract_modres(mod = mod)
+
+# 2. Adj: ind
+mod2_cc <- shade_long_cc_nest |> 
+  dplyr::mutate(mod = purrr::map(data, ~multgee::nomLORgee(cesd_class ~ treecan_val +
+                                                           raceeth + education + lunch, 
+                                                           id = grp_period, LORstr = "time.exch", 
+                                                           data = .)) |> 
+                                               butcher::butcher()) 
+mod2_res_cc <- mod2_cc |> extract_modres(mod = mod)
+# 3. Adj: ind + nb vars (inc + %Black + % Hispanic + CrimeTot)
+mod3 <- shade_long_cc_nest |> 
+  dplyr::mutate(mod = purrr::map(data, ~multgee::nomLORgee(cesd_class ~ treecan_val +
+                                                           raceeth + education + lunch +
+                                                           inc + nb_black + nb_hisp + crime_tot, 
+                                                           id = grp_period, LORstr = "time.exch", 
+                                                           data = .)) |> 
+                                               butcher::butcher()) 
+mod3_res_cc <- mod3_cc |> extract_modres(mod = mod)
+
+# Export models
+# saveRDS(mod1_cc, 'data/processed/models/mod1-cc-20240617.RDS')
+# saveRDS(mod2_cc, 'data/processed/models/mod2-cc-20240617.RDS')
+# saveRDS(mod3_cc, 'data/processed/models/mod3-cc-20240617.RDS')
+
+##### COMBINE MODEL RESULTS ##### 
+lvls_modlab <- c('Model 1: Unadjusted', # 1
+                 'Model 2: Adjusted:\nIndividual', # 2
+                 'Model 3: Adjusted:\nIndividual + Neighborhood') # 3
+lvls_outcome <- c('Mild, Stable','Mild, Increasing',
+                  'Moderate, Decreasing',
+                  'High, Arching','High, Increasing')
+# Combine results
+xmax_plot <- 2.3
+mod_res_cc <- dplyr::bind_rows(
+    mod1_res_cc  |> dplyr::mutate(modlab = lvls_modlab[1]), 
+    mod2_res_cc  |> dplyr::mutate(modlab = lvls_modlab[2]),
+    mod3_res_cc  |> dplyr::mutate(modlab = lvls_modlab[3])) |> 
+  dplyr::mutate(
+    modlab  = modlab |> factor(levels = lvls_modlab),
+    or      = est |> exp(),
+    cl_low  = exp(est - 1.959964*se), 
+    cl_high = exp(est + 1.959964*se),
+    or_cl   = stringr::str_c(
+      or |> round(3) |> format(3),' (',
+      cl_low |> round(3) |> format(3),',',
+      cl_high |> round(3) |> format(3),')') |> str_pad(width = 15, side = "left", pad = " "),
+    outcome = dplyr::case_when(
+      sex == 'Female' & term == 'treecan_val:1' ~ lvls_outcome[1],
+      sex == 'Male'   & term == 'treecan_val:1' ~ lvls_outcome[2],
+                        term == 'treecan_val:2' ~ lvls_outcome[3],
+      sex == 'Female' & term == 'treecan_val:3' ~ lvls_outcome[4],
+      sex == 'Male'   & term == 'treecan_val:3' ~ lvls_outcome[5]) |> factor(levels = lvls_outcome),
+    cl_high_capped = ifelse(cl_high > xmax_plot, xmax_plot, NA),
+    sig = if_else(cl_high < 1 | cl_low > 1, 'Significant', 'Non-Significant')) |> 
+  dplyr::relocate(modlab, .before = sex) |> 
+  dplyr::relocate(c(or, cl_low, cl_high, or_cl), .before = est)
+
+##### PLOT ##### 
+# Consider log scale
+plot_mod_res_cc <- mod_res_cc |> 
+  ggplot(aes(x = or, y = outcome, color = sig)) +
+  geom_point() +
+  geom_text(aes(label = or_cl, x = min(cl_low) - 0.1), hjust = 1) + # x = -0.1
+  geom_errorbar(aes(xmin = cl_low, xmax = cl_high)) +
+  # geom_segment(aes(x = cl_low, y = modlab, xend = cl_high_capped, yend = modlab), position = position_dodge(0.5), arrow = arrow(length = unit(0.3, "cm"))) + # Add right arrows where CI too high, I think only works if there is at least one non-missing
+  geom_vline(aes(xintercept = min(cl_low) - 0.05), alpha = 0.5) + # Vertical line: between label and plot, xintercept = 0
+  geom_vline(xintercept = 1, linetype = 2, alpha = 0.5) + # Vertical line: 0
+  ggh4x::facet_nested(modlab + sex ~ env, switch = "y", strip = strip_nested(size = "variable"), scales = "free") + 
+  labs(x = 'Odds Ratio', y = 'CESD Class (Reference = Low, Stable)') + # modlab + sex ~ env
+  guides(color = 'none') +
+  theme_bw() +
+  theme(axis.line = element_line(color = "grey50"),
+        axis.text.y = element_text(hjust = 0),
+        strip.placement = "outside",
+        strip.text.y.left = element_text(angle = 90, hjust = 0.5),
+        ggh4x.facet.nestline = element_line(color = 'white', linetype = 1, linewidth = 1.5)) +
+  scale_y_discrete(limits = rev, drop = TRUE) +
+  scale_x_continuous(trans = 'log10', limits = c(0.2, xmax_plot), # -3
+                     breaks = seq(0, xmax_plot, 1), 
+                     minor_breaks = seq(0, xmax_plot, 0.2)) # lower limit for enough label space
+
+### EXPORT
+plot_mod_res_cc
+ggsave(paste0('comms/figures/plot-tcc-deptraj-sa-cc',date_today,'.png'), height = 6, width = 19)
+
+export(mod_res, paste0('comms/tables/modres-tcc-deptraj-sa-cc',date_today,'.csv'))
+```
+
+
+### 6.1.3. S Fig 2 - 3 cats
+NEED TO CLEAN UP
+```{r}
+# rerun this and I think  I can delete
+shade_long_imp <- shade_imp_prelim_df |> 
+  dplyr::select(-c(raceeth, lunch, education)) |> 
+  dplyr::left_join(shade_imp_df, by = 'rowno') |>
+  # Pivot to long format
+    # imputation
+  tidyr::pivot_longer(cols = dplyr::matches('raceeth|education|lunch[0-9]'),
+                      names_to = c('.value', 'imp'),
+                      names_pattern = '([a-z]+)([0-9]+)') |> 
+    # TCC vars
+  tidyr::pivot_longer(cols = c('tcc_2011_h5_avg_std', 'tcc_2011_h10_avg_std'),
+                      names_to = 'treecan_var', values_to = "treecan_val") |> 
+  # Split summary variable to two columns
+  tidyr::separate_wider_delim(treecan_var, delim = "_", names = c("measure","yr","env_short"), too_many = "drop") |> 
+  # Recode variables
+  dplyr::mutate(
+    # Create new nb columns dependent on TCC var
+    inc = dplyr::case_when(
+      env_short %in% c('h5','s7') ~ inc_2015_h5_med, 
+      env_short %in% c('h10')     ~ inc_2015_h10_med),
+    nb_black = dplyr::case_when(
+      env_short %in% c('h5','s7') ~ r_black_2015_h5_pct, 
+      env_short %in% c('h10')     ~ r_black_2015_h10_pct),
+    nb_hisp = dplyr::case_when(
+      env_short %in% c('h5','s7') ~ r_hispn_2015_h5_pct, 
+      env_short %in% c('h10')     ~ r_hispn_2015_h10_pct),
+    crime_tot = dplyr::case_when(
+      env_short %in% c('h5','s7') ~ crime_tot_2012_h5_idx, 
+      env_short %in% c('h10')     ~ crime_tot_2012_h10_idx),
+    # Recode environmental variables
+    env = dplyr:::case_when(
+      env_short == 'h5'  ~ lvls_env[1],
+      env_short == 'h10' ~ lvls_env[2]) |> 
+      factor(levels = lvls_env)) |> 
+  dplyr::relocate(c(measure,yr,env,treecan_val),.after = sid)
+
+shade_long_imp_nest <- shade_long_imp |> 
+  dplyr::select(cesd_class_orig, grp_school, # extra stuff
+                imp, sex, measure, env,
+                treecan_val, grp_teacher, grp_period,
+                raceeth, education, lunch, 
+                cesd_class_cat3,
+                gsp_2011_h5_pct_std,
+                inc, nb_black, nb_hisp, crime_tot) |> 
+  # Remove missing
+  dplyr::filter(!is.na(treecan_val)) |>
+  dplyr::group_by(imp, sex, measure, env) |> 
+  tidyr::nest() |> 
+  dplyr::ungroup() |> 
+  dplyr::mutate(data = purrr::map(data, \(x)
+                                  x |> dplyr::mutate(cesd_class = fct_drop(cesd_class))))
+
+
+### RUN MODS
+# 1. Crude
+# tic()
+# mod1_c3 <- shade_long_imp_nest |> 
+#   dplyr::mutate(mod = furrr::future_map(data, ~multgee::nomLORgee(cesd_class_cat3 ~ treecan_val, 
+#                                                                   id = grp_period, LORstr = "time.exch", 
+#                                                                   data = .), .options = furrr_options(seed = TRUE)) |> 
+#                                                butcher::butcher()) 
+# toc()
+# saveRDS(mod1_cat3, 'data/processed/models/mod1_c3-20240626.RDS')
+# mod1_c3_res <- mod1_c3 |> extract_modres_imp(mod = mod, n_imp_used = 50)
+
+# 2. Adj: ind, 557571.88 sec (6.5 days)
+# tic()
+# mod2_c3 <- shade_long_imp_nest |> 
+#   dplyr::mutate(mod = furrr::future_map(data, ~multgee::nomLORgee(cesd_class_cat3 ~ treecan_val +
+#                                                                   raceeth + education + lunch, 
+#                                                                   id = grp_period, LORstr = "time.exch", 
+#                                                                   data = .), .options = furrr_options(seed = TRUE)) |> 
+#                                                butcher::butcher()) 
+# toc()
+# saveRDS(mod2_c3, 'data/processed/models/mod2_c3-20240620.RDS')
+# mod2_c3_res <- mod2 |> extract_modres_imp(mod = mod, n_imp_used = 50)
+
+
+# 3. Adj: ind + nb vars (inc + %Black + % Hispanic + CrimeTot)
+tic()
+mod3_c3 <- shade_long_imp_nest |> 
+  dplyr::filter(env == "Home (500m)") |> 
+  dplyr::mutate(mod = furrr::future_map(data, ~multgee::nomLORgee(cesd_class_cat3 ~ treecan_val +
+                                                                  raceeth + education + lunch +
+                                                                  inc + nb_black + nb_hisp + crime_tot, 
+                                                                  id = grp_period, LORstr = "time.exch", 
+                                                                  data = .), .options = furrr_options(seed = TRUE)) |> 
+                                               butcher::butcher()) 
+toc()
+mod3_c3_res <- mod3_c3 |> extract_modres_imp(mod = mod, n_imp_used = 50)
+saveRDS(mod3_c3, 'data/processed/models/mod3_c3-20240626.RDS')
+
+## Read in models
+# mod1_c3 <- readRDS('data/processed/models/mod1_c3-20240626.RDS')
+# mod2_c3 <- readRDS('data/processed/models/mod2_c3-20240626.RDS')
+# mod3_c3 <- readRDS('data/processed/models/mod3_c3-20240626.RDS')
+
+
+  ##### COMBINE MODEL RESULTS ##### 
+lvls_modlab <- c('Mod 1: Crude', # 1
+                 'Mod 2: Adjusted\nInd', # 2
+                 'Mod 3: Adjusted\nInd + Nb') # 3
+lvls_outcome <- c('Mild, Stable','Mild, Increasing',
+                  'Moderate, Decreasing',
+                  'High, Arching','High, Increasing')
+# Combine results
+sfig2_df <- mod3_c3_res |> 
+  dplyr::mutate(
+    modlab  = modlab |> factor(levels = lvls_modlab),
+    or      = est |> exp(),
+    cl_low  = exp(est - 1.959964*se), 
+    cl_high = exp(est + 1.959964*se),
+    or_cl   = stringr::str_c(
+      or |> round(3) |> format(3),' (',
+      cl_low |> round(3) |> format(3),',',
+      cl_high |> round(3) |> format(3),')') |> str_pad(width = 15, side = "left", pad = " "),
+    outcome = dplyr::case_when(
+      sex == 'Female' & term == 'treecan_val:1' ~ lvls_outcome[1],
+      sex == 'Male'   & term == 'treecan_val:1' ~ lvls_outcome[2],
+                        term == 'treecan_val:2' ~ lvls_outcome[3],
+      sex == 'Female' & term == 'treecan_val:3' ~ lvls_outcome[4],
+      sex == 'Male'   & term == 'treecan_val:3' ~ lvls_outcome[5]) |> factor(levels = lvls_outcome),
+    cl_high_capped = ifelse(cl_high > xmax_plot, xmax_plot, NA),
+    sig = if_else(cl_high < 1 | cl_low > 1, 'Significant', 'Non-Significant')) |> 
+  dplyr::relocate(modlab, .before = sex) |> 
+  dplyr::relocate(c(or, cl_low, cl_high, or_cl), .before = est)
+
+##### PLOT ##### 
+# Checks to inform plot param
+sfig2_df |> summarize(min(cl_low)) # 0.484
+sfig2_df |> summarize(max(cl_high)) # 1.35
+# Set plot param
+size_text <- 13
+size_lab <- 4
+xmin_plot <- 0.2
+x_lab <- 0.42
+x_vline <- 0.45
+xmin_breaks <- 0.5
+xmax_plot <- 1.4
+
+
+# Plot
+sfig2 <- sfig2_df |> 
+  ggplot(aes(x = or, y = outcome, color = sig)) +
+  geom_point() +
+  geom_text(aes(label = or_cl, x = x_lab), hjust = 1, size = size_lab) + # x = -0.1
+  geom_errorbar(aes(xmin = cl_low, xmax = cl_high)) +
+  geom_vline(aes(xintercept = x_vline), alpha = 0.5) + # Vline: btwn label & plot
+  geom_vline(xintercept = 1, linetype = 2, alpha = 0.5) + # Vline: null
+  ggh4x::facet_nested(modlab + sex ~ env, switch = "y", strip = strip_nested(size = "variable"), scales = "free") + 
+  labs(x = 'Odds Ratio', y = 'CESD Class (Reference = Low, Stable)') + 
+  guides(color = 'none') +
+  theme_bw() +
+  theme(text = element_text(size = size_text),
+        axis.line = element_line(color = "grey50"),
+        axis.text.y = element_text(hjust = 0),
+        strip.placement = "outside",
+        strip.text.y.left = element_text(angle = 90, hjust = 0.5),
+        ggh4x.facet.nestline = element_line(color = 'white', linetype = 1, linewidth = 1.5)) +
+  scale_y_discrete(limits = rev, drop = TRUE) +
+  scale_x_continuous(trans = 'log10', 
+                     limits       = c(xmin_plot, xmax_plot),
+                     breaks       = seq(xmin_breaks, xmax_plot, 0.2), 
+                     minor_breaks = seq(xmin_breaks, xmax_plot, 0.1)) 
+
+### EXPORT
+ggsave(plot = sfig2,
+       filename = paste0('comms/figures/sfig2',date_today,'.png'), height = 9, width = 6.5)
+
+export(sfig2_df, paste0('comms/tables/sfig2-df',date_today,'.csv'))
+```
+
+
+### 6.1.2. S Fig 3 - Green Space Models
+```{r}
+tic()
+mod_gs <- shade_long_imp_nest |> 
+  dplyr::filter(env == "Home (500m)") |> 
+  dplyr::mutate(mod = furrr::future_map(data, ~multgee::nomLORgee(cesd_class ~ treecan_val +
+                                                                  raceeth + education + lunch +
+                                                                  inc + nb_black + nb_hisp + crime_tot +
+                                                                  gsp_2011_h5_pct_std, 
+                                                                  id = grp_period, LORstr = "time.exch", 
+                                                                  data = .), .options = furrr_options(seed = TRUE)) |> 
+                                               butcher::butcher()) 
+toc()
+saveRDS(mod_gs, 'data/processed/models/modgs-20240715.RDS')
+modgs_res <- mod_gs |> extract_modres_imp(mod = mod, n_imp_used = 50)
+
+## Read in models
+# mod_gs <- readRDS('data/processed/models/modgs-20240626.RDS')
+
+
+##### COMBINE MODEL RESULTS ##### 
+lvls_outcome <- c('Mild, Stable','Mild, Increasing',
+                  'Moderate, Decreasing',
+                  'High, Arching','High, Increasing')
+# Combine results
+sfig3_df <- modgs_res  |> dplyr::mutate(modlab = lvls_modlab[1]) |> 
+  dplyr::mutate(
+    modlab  = modlab |> factor(levels = lvls_modlab),
+    or      = est |> exp(),
+    cl_low  = exp(est - 1.959964*se), 
+    cl_high = exp(est + 1.959964*se),
+    or_cl   = stringr::str_c(
+      or |> round(3) |> format(3),' (',
+      cl_low |> round(3) |> format(3),',',
+      cl_high |> round(3) |> format(3),')') |> str_pad(width = 15, side = "left", pad = " "),
+    outcome = dplyr::case_when(
+      sex == 'Female' & term == 'treecan_val:1' ~ lvls_outcome[1],
+      sex == 'Male'   & term == 'treecan_val:1' ~ lvls_outcome[2],
+                        term == 'treecan_val:2' ~ lvls_outcome[3],
+      sex == 'Female' & term == 'treecan_val:3' ~ lvls_outcome[4],
+      sex == 'Male'   & term == 'treecan_val:3' ~ lvls_outcome[5]) |> factor(levels = lvls_outcome),
+    cl_high_capped = ifelse(cl_high > xmax_plot, xmax_plot, NA),
+    sig = if_else(cl_high < 1 | cl_low > 1, 'Significant', 'Non-Significant')) |> 
+  dplyr::relocate(modlab, .before = sex) |> 
+  dplyr::relocate(c(or, cl_low, cl_high, or_cl), .before = est)
+
+##### PLOT ##### 
+# Checks to inform plot param
+sfig3_df |> summarize(min(cl_low)) # 0.484
+sfig3_df |> summarize(max(cl_high)) # 1.35
+# Set plot param
+size_text <- 13
+size_lab <- 4
+xmin_plot <- 0.2
+x_lab <- 0.42
+x_vline <- 0.45
+xmin_breaks <- 0.5
+xmax_plot <- 1.4
+
+
+# Plot
+sfig3 <- sfig3_df |> 
+  dplyr::filter(env == "Home (500m)") |> 
+  ggplot(aes(x = or, y = outcome, color = sig)) +
+  geom_point() +
+  geom_text(aes(label = or_cl, x = x_lab), hjust = 1, size = size_lab) + # x = -0.1
+  geom_errorbar(aes(xmin = cl_low, xmax = cl_high)) +
+  geom_vline(aes(xintercept = x_vline), alpha = 0.5) + # Vline: btwn label & plot
+  geom_vline(xintercept = 1, linetype = 2, alpha = 0.5) + # Vline: null
+  ggh4x::facet_nested(modlab + sex ~ env, switch = "y", strip = strip_nested(size = "variable"), scales = "free") + 
+  labs(x = 'Odds Ratio', y = 'CESD Class (Reference = Low, Stable)') + 
+  guides(color = 'none') +
+  theme_bw() +
+  theme(text = element_text(size = size_text),
+        axis.line = element_line(color = "grey50"),
+        axis.text.y = element_text(hjust = 0),
+        strip.placement = "outside",
+        strip.text.y.left = element_text(angle = 90, hjust = 0.5),
+        ggh4x.facet.nestline = element_line(color = 'white', linetype = 1, linewidth = 1.5)) +
+  scale_y_discrete(limits = rev, drop = TRUE) +
+  scale_x_continuous(trans = 'log10', 
+                     limits       = c(xmin_plot, xmax_plot),
+                     breaks       = seq(xmin_breaks, xmax_plot, 0.2), 
+                     minor_breaks = seq(xmin_breaks, xmax_plot, 0.1)) 
+
+
+
+### EXPORT
+ggsave(plot = sfig3,
+       filename = paste0('comms/figures/sfig3',date_today,'.png'), height = 5, width = 6.5)
+export(sfig3_df, paste0('comms/tables/sfig3-df',date_today,'.csv'))
+```
+
+
+### Ad-hoc Checks
+#### TCC Change
+```{r}
+### TCC change over time by sex/CESD categories
+skim_format(numeric=list(digits=4))
+shade_clean |> 
+  dplyr::mutate(tcc_h5_change  = tcc_2016_h5_avg  - tcc_2011_h5_avg,
+                tcc_h10_change = tcc_2016_h10_avg - tcc_2011_h10_avg) |> 
+  dplyr::group_by(sex, cesd_class) |> 
+  select(tcc_h5_change, tcc_h10_change) |> 
+  skim() |> 
+  as_tibble() |> 
+  select(-skim_type, -n_missing) |> 
+  mutate_if(is.numeric, round, 4) |> 
+  gt()
+
+
+# violin/box plots- didn't really change
+fun_median <- function(x){
+  return(data.frame(y = median(x), label = x |> median(na.rm = T) |> round(3) |> format(nsmall = 3)))
+  }
+shade_clean |> 
+  tidyr::pivot_longer(cols = c(tcc_2011_h5_avg, tcc_2016_h5_avg,
+                               tcc_2011_h10_avg, tcc_2016_h10_avg),
+                      names_to = 'tcc_cat',
+                      values_to = 'val') |> 
+  dplyr::mutate(
+    yr = dplyr::case_when(
+      tcc_cat |> str_detect('2011') ~ 2011,
+      tcc_cat |> str_detect('2016') ~ 2016),
+    buffer = dplyr::case_when(
+      tcc_cat |> str_detect('h5') ~ 500,
+      tcc_cat |> str_detect('h10') ~ 1000)) |> 
+  ggplot(aes(x = factor(yr), y = val)) + 
+  geom_violin(trim = FALSE) + 
+  geom_boxplot(width = 0.1) +
+  # geom_smooth(method = lm) +
+  facet_grid(buffer ~ sex) + 
+  stat_summary(fun.data = fun_median, color = 'blue', geom = "text", hjust = -0.2, vjust = -2)
+  # try across CESD classes
+shade_clean |> 
+  tidyr::pivot_longer(cols = c(tcc_2011_h5_avg, tcc_2016_h5_avg,
+                               tcc_2011_h10_avg, tcc_2016_h10_avg),
+                      names_to = 'tcc_cat',
+                      values_to = 'val') |> 
+  dplyr::mutate(
+    yr = dplyr::case_when(
+      tcc_cat |> str_detect('2011') ~ 2011,
+      tcc_cat |> str_detect('2016') ~ 2016),
+    buffer = dplyr::case_when(
+      tcc_cat |> str_detect('h5') ~ 500,
+      tcc_cat |> str_detect('h10') ~ 1000)) |> 
+  ggplot(aes(x = factor(yr), y = val)) + 
+  geom_violin(trim = FALSE) + 
+  geom_boxplot(width = 0.1) +
+  # geom_smooth(method = lm) +
+  facet_grid(buffer ~ sex + cesd_class) + 
+  stat_summary(fun.data = fun_median, color = 'blue', geom = "text", hjust = -0.2, vjust = -2)
+
+## OLD
+# median change is 0
+sum_tcc_change <- shade_clean |> 
+  dplyr::mutate(tcc_h5_change  = tcc_2016_h5_avg  - tcc_2011_h5_avg,
+                tcc_h10_change = tcc_2016_h10_avg - tcc_2011_h10_avg) |> 
+  dplyr::group_by(sex, cesd_class) |> 
+  dplyr::summarize(h5_mean    = mean(tcc_h5_change, na.rm = TRUE),
+                   h10_mean   = mean(tcc_h10_change, na.rm = TRUE))
+# Plot
+sum_tcc_change |> 
+  tidyr::pivot_longer(cols = c(h5_mean, h10_mean),
+                      names_to = 'buffer_statistic',
+                      values_to = 'val') |> 
+  ggplot(aes(x = cesd_class, y = val)) +
+    geom_bar(stat = 'identity') +
+    facet_grid(buffer_statistic ~ sex, scales = 'free') +
+    labs(x = 'Average', y = 'CESD Trajectory Class')
+```
+
+
+#### Linearity 
+```{r}
+### Check confounder strata with quartiles
+test <- shade_imp_prelim_df |> 
+  dplyr::select(-c(raceeth, lunch, education)) |> 
+  dplyr::left_join(shade_imp_df, by = 'rowno') |> 
+  # Pivot to long format
+    # imputation
+  tidyr::pivot_longer(cols = dplyr::matches('raceeth|education|lunch[0-9]'),
+                      names_to = c('.value', 'imp'),
+                      names_pattern = '([a-z]+)([0-9]+)') |> 
+  dplyr::filter(imp == 1)
+
+test |> 
+  group_by(cesd_class, raceeth, lunch, education) |>
+  count() |> tabyl(n)
+
+test |> 
+  group_by(cesd_class, inc_2015_h5_med_q, r_black_2015_h5_pct_q, r_hispn_2015_h5_pct_q, crime_tot_2012_h5_idx_q) |>
+  count()
+
+
+### Check linearity
+shade_imp_prelim_df |> tabyl(tcc_2011_h5_avg_q)
+# Change to long format
+shade_long_imp_q <- shade_imp_prelim_df |> 
+  dplyr::select(-c(raceeth, lunch, education)) |> 
+  dplyr::left_join(shade_imp_df, by = 'rowno') |>
+  # Pivot to long format
+    # imputation
+  tidyr::pivot_longer(cols = dplyr::matches('raceeth|education|lunch[0-9]'),
+                      names_to = c('.value', 'imp'),
+                      names_pattern = '([a-z]+)([0-9]+)') |> 
+    # TCC vars
+  tidyr::pivot_longer(cols = c('tcc_2011_h5_avg_q'),
+                      names_to = 'treecan_var', values_to = "treecan_val") |> 
+  # Split summary variable to two columns
+  tidyr::separate_wider_delim(treecan_var, delim = "_", names = c("measure","yr","env_short"), too_many = "drop") |> 
+  # Recode variables
+  dplyr::mutate(
+    # Create new nb columns dependent on TCC var
+    inc = dplyr::case_when(
+      env_short %in% c('h5','s7') ~ inc_2015_h5_med, 
+      env_short %in% c('h10')     ~ inc_2015_h10_med),
+    nb_black = dplyr::case_when(
+      env_short %in% c('h5','s7') ~ r_black_2015_h5_pct, 
+      env_short %in% c('h10')     ~ r_black_2015_h10_pct),
+    nb_hisp = dplyr::case_when(
+      env_short %in% c('h5','s7') ~ r_hispn_2015_h5_pct, 
+      env_short %in% c('h10')     ~ r_hispn_2015_h10_pct),
+    crime_tot = dplyr::case_when(
+      env_short %in% c('h5','s7') ~ crime_tot_2012_h5_idx, 
+      env_short %in% c('h10')     ~ crime_tot_2012_h10_idx),
+    # Recode environmental variables
+    env = dplyr:::case_when(
+      env_short == 'h5'  ~ lvls_env[1]) |> 
+      factor(levels = lvls_env)) |> 
+  dplyr::relocate(c(measure,yr,env,treecan_val),.after = sid)
+
+
+##### FIT MODELS (different sets b/c different nb SES adjustment vars)
+## Setup and checks
+# Create nested data
+shade_long_imp_nest_q <- shade_long_imp_q |> 
+  dplyr::select(imp, sex, measure, env,
+                cesd_class, treecan_val, grp_teacher, grp_school,
+                raceeth, education, lunch, 
+                inc, nb_black, nb_hisp, crime_tot) |> 
+  # Remove missing
+  dplyr::filter(!is.na(treecan_val)) |>
+  dplyr::group_by(imp, sex, measure, env) |> 
+  tidyr::nest() |> 
+  dplyr::ungroup()
+## Fit models & initial result extractions
+tidy_nomgee_imp <- function(mod){
+  mod |> 
+    summary() |> 
+    purrr::pluck('coefficients') |> 
+    dplyr::as_tibble(rownames = 'var') |> 
+    purrr::possibly(dplyr::transmute)(  # to avoid errors with empty cells
+      term     = var,
+      imp_est  = Estimate,
+      imp_se   = san.se,
+      imp_z    = san.z,
+      imp_pval = `Pr(>|san.z|)`)
+}
+extract_modres_imp <- function(df, mod){
+  df |> 
+    dplyr::select(-data) |> 
+    dplyr::mutate(modres = purrr::map(({{mod}}), tidy_nomgee_imp)) |> 
+    tidyr::unnest(modres) |> 
+    dplyr::filter(str_detect(term,'treecan_val')) |>
+    dplyr::select(-{{mod}}) |> 
+    dplyr::group_by(sex, measure, env, term) |> 
+    dplyr::summarize(est        = imp_est |> mean(),
+                     var_within = imp_se |> magrittr::raise_to_power(2) |> mean(),
+                     var_btwn   = imp_est |> var(),
+                     var        = var_within + var_btwn + var_btwn/2, # n_imp
+                     se         = var |> sqrt()) |> 
+    dplyr::ungroup() 
+}
+
+
+# 1. Crude
+mod1_q <- shade_long_imp_nest_q |> 
+  dplyr::filter(as.numeric(imp) < 3) |> 
+  dplyr::mutate(mod = map(data, ~multgee::nomLORgee(cesd_class ~ treecan_val, 
+                                                                  id = grp_teacher, LORstr = "independence", 
+                                                                  data = .)) |> 
+                                               butcher::butcher()) 
+mod1_res_q <- mod1_q |> extract_modres_imp(mod = mod)
+# 2. Adj: ind
+mod2_q <- shade_long_imp_nest_q |> 
+  dplyr::filter(as.numeric(imp) < 3) |> 
+  dplyr::mutate(mod = map(data, ~multgee::nomLORgee(cesd_class ~ treecan_val +
+                                                                  raceeth + education + lunch, 
+                                                                  id = grp_teacher, LORstr = "independence", 
+                                                                  data = .)) |> 
+                                               butcher::butcher()) 
+mod2_res_q <- mod2_q |> extract_modres_imp(mod = mod)
+# 3. Adj: ind + nb vars (inc + %Black + % Hispanic + CrimeTot)
+mod3_q <- shade_long_imp_nest_q |> 
+  dplyr::filter(as.numeric(imp) < 3) |> 
+  dplyr::mutate(mod = map(data, ~multgee::nomLORgee(cesd_class ~ treecan_val +
+                                                                  raceeth + education + lunch +
+                                                                  inc + nb_black + crime_tot, #nb_hisp
+                                                                  id = grp_school, LORstr = "independence", 
+                                                                  data = .)) |> 
+                                               butcher::butcher()) # Robust covariance matrix is not positive definite w/grp_teacher
+mod3_res_q <- mod3_q |> extract_modres_imp(mod = mod)
+
+shade_long_imp_nest_q |> 
+  dplyr::filter(imp == 1 & sex == 'Female') |> 
+  dplyr::mutate(mod = map(data, ~multgee::nomLORgee(cesd_class ~ treecan_val +
+                                                                  raceeth + education + lunch +
+                                                                  inc + nb_black + crime_tot, #nb_hisp
+                                                                  id = grp_school, LORstr = "independence", 
+                                                                  data = .)))
+
+testmod <- shade_long_imp_nest_q |> 
+  dplyr::filter(imp == 1 & sex == 'Male') |> 
+  dplyr::mutate(mod = map(data, ~multgee::nomLORgee(cesd_class ~ treecan_val,
+                                                                  id = grp_school, LORstr = "independence", 
+                                                                  data = .)))
+test$mod[[1]] |> summary() |> pluck('coefficients')
+
+library(nnet)
+testdf <- shade_long_imp |> dplyr::filter(imp == 1 & sex == 'Male')
+testmod <- multinom(cesd_class ~ treecan_val + raceeth + education + lunch + inc + nb_black + crime_tot + grp_school, 
+                    data = testdf)
+testmod2 <- multgee::nomLORgee(cesd_class ~ treecan_val + raceeth + education + lunch + inc + nb_black + crime_tot,
+                              id = grp_school, 
+                    data = testdf)
+
+
+?
+
+testmod |> tidy(exp = TRUE, conf.int = TRUE) |> filter(term |> str_detect('treecan'))
+
+##### COMBINE MODEL RESULTS ##### 
+lvls_outcome_q <- c('Mild,\nStable','Mild,\nIncreasing',
+                  'Moderate,\nDecreasing',
+                  'High,\nArching','High,\nIncreasing')
+# Combine results
+xmax_plot <- 3
+mod_res_q <- dplyr::bind_rows(
+    mod1_res_q  |> dplyr::mutate(modlab = lvls_modlab[1]),
+    mod2_res_q  |> dplyr::mutate(modlab = lvls_modlab[2])) |> 
+    # mod3_res_q  |> dplyr::mutate(modlab = lvls_modlab[3])) |> 
+  dplyr::mutate(
+    modlab  = modlab |> factor(levels = lvls_modlab),
+    or      = est |> exp(),
+    cl_low  = exp(est - 1.959964*se), 
+    cl_high = exp(est + 1.959964*se),
+    or_cl   = stringr::str_c(
+      or |> round(2) |> format(2),' (',
+      cl_low |> round(2) |> format(2),',',
+      cl_high |> round(2) |> format(2),')') |> str_pad(width = 15, side = "left", pad = " "),
+    outcome = dplyr::case_when(
+      sex == 'Female' & term |> str_detect(':1') ~ lvls_outcome_q[1],
+      sex == 'Male'   & term |> str_detect(':1') ~ lvls_outcome_q[2],
+                        term |> str_detect(':2') ~ lvls_outcome_q[3],
+      sex == 'Female' & term |> str_detect(':3') ~ lvls_outcome_q[4],
+      sex == 'Male'   & term |> str_detect(':3') ~ lvls_outcome_q[5]) |> factor(levels = lvls_outcome_q),
+    treecan_cat = dplyr::case_when(
+      term |> str_detect('1.06,1.67') ~ 'Q2',
+      term |> str_detect('1.67,2.74') ~ 'Q3',
+      term |> str_detect('2.74,12.6') ~ 'Q4'),
+    cl_high_capped = ifelse(cl_high > xmax_plot, xmax_plot, NA),
+    sig = if_else(cl_high < 1 | cl_low > 1, 'Significant', 'Non-Significant')) |> 
+  dplyr::relocate(modlab, .before = sex) |> 
+  dplyr::relocate(c(or, cl_low, cl_high, or_cl), .before = est)
+
+##### PLOT ##### 
+# Consider log scale
+plot_mod_res_q <- mod_res_q |> 
+  ggplot(aes(x = or, y = treecan_cat, color = sig)) +
+  geom_point() +
+  geom_text(aes(label = or_cl), x = -0.1, hjust = 1) +
+  geom_errorbar(aes(xmin = cl_low, xmax = cl_high)) +
+  # geom_segment(aes(x = cl_low, y = modlab, xend = cl_high_capped, yend = modlab), position = position_dodge(0.5), arrow = arrow(length = unit(0.3, "cm"))) + # Add right arrows where CI too high, I think only works if there is at least one non-missing
+  geom_vline(xintercept = 0, alpha = 0.5) + # Vertical line: between label and plot
+  geom_vline(xintercept = 1, linetype = 2, alpha = 0.5) + # Vertical line: 0
+  ggh4x::facet_nested(sex + outcome ~ env + modlab, switch = "y", strip = strip_nested(size = "variable"), scales = "free") + 
+  labs(x = 'Estimate', y = 'CESD Class (Reference = Low, Stable)') + # modlab + sex ~ env
+  guides(color = 'none') +
+  theme_bw() +
+  theme(axis.line = element_line(color = "grey50"),
+        axis.text.y = element_text(hjust = 0),
+        strip.placement = "outside",
+        strip.text.y.left = element_text(angle = 90, hjust = 0.5),
+        ggh4x.facet.nestline = element_line(color = 'white', linetype = 1, linewidth = 1.5)) +
+  scale_y_discrete(limits = rev, drop = TRUE) +
+  scale_x_continuous(limits = c(-3, xmax_plot), breaks = seq(0, xmax_plot, 1), minor_breaks = seq(0, xmax_plot, 0.5)) # lower limit for enough label space
+
+### EXPORT
+plot_mod_res_q
+ggsave(paste0('comms/figures/plot-tcc-deptraj-imp-q-seoff',date_today,'.png'), height = 8, width = 7)
+
+export(mod_res_q, 'comms/tables/mod-tcc-deptraj-imp-q-seoff-202516.csv')
+
+```
+
+
+### 6.1.3. Ad-hoc plot progress report
+```{r}
+mod_res <- import('comms/tables/mod-tcc-deptraj-imp-50-20240427.csv')
+mod_res |> tabyl(modlab)
+mod_res |> filter(modlab == '5A I+N($+B+H+Cto)')
+
+xmax_plot <- 3
+plot_mod_res_adhoc <- mod_res |> 
+  dplyr::filter(modlab == '5A I+N($+B+H+Cto)') |> 
+  ggplot(aes(x = or, y = outcome, color = sig)) +
+  geom_point() +
+  geom_text(aes(label = or_cl), x = -0.1, hjust = 1) +
+  geom_errorbar(aes(xmin = cl_low, xmax = cl_high)) +
+  geom_segment(aes(x = cl_low, y = outcome, xend = cl_high_capped, yend = outcome), position = position_dodge(0.5), arrow = arrow(length = unit(0.3, "cm"))) + # Add right arrows where CI too high, I think only works if there is at least one non-missing
+  geom_vline(xintercept = 0, alpha = 0.5) + # Vertical line: between label and plot
+  geom_vline(xintercept = 1, linetype = 2, alpha = 0.5) + # Vertical line: 0
+  ggh4x::facet_nested(sex ~ env, switch = "y", strip = strip_nested(size = "variable"), scales = "free") + 
+  labs(x = 'Estimate', y = 'CESD Class (Reference = Low, Stable)') + # modlab + sex ~ env
+  guides(color = 'none') +
+  theme_bw() +
+  theme(axis.line = element_line(color = "grey50"),
+        axis.text.y = element_text(hjust = 0),
+        strip.placement = "outside",
+        strip.text.y.left = element_text(angle = 90, hjust = 0.5),
+        ggh4x.facet.nestline = element_line(color = 'white', linetype = 1, linewidth = 1.5)) +
+  scale_y_discrete(limits = rev, drop = TRUE) +
+  scale_x_continuous(limits = c(-3, xmax_plot), breaks = seq(0, xmax_plot, 1), minor_breaks = seq(0, xmax_plot, 0.5)) # lower limit for enough label space
+
+plot_mod_res_adhoc |> ggsave(filename = paste0('comms/figures/PROGREPORT-plot-tcc-deptraj-imp-50',date_today,'.png'), 
+                              height = 5, width = 10)
+
+```
+
+
+## 6.2. LST
+```{r}
+lvls_env <- c('School (700m)',
+              'Home (500m)',
+              'Home (1000m)',
+              'Route (100m)',
+              'Combined (School [700m] + Home [500m])',
+              'Combined (School [700m] + Home [1000m])')
+# Change to long format
+shade_long_lst <- shade_clean |> 
+  # Pivot to long format
+  tidyr::pivot_longer(cols = c('lst_2013_s7_avg_std', 
+                               'lst_2013_h5_avg_std', 'lst_2013_h10_avg_std',
+                               'lst_2013_r1_avg_std', 
+                               'lst_2013_c5_wavg_std','lst_2013_c10_wavg_std'),
+                      names_to = 'temp_var', values_to = "temp_val") |> 
+  # Split summary variable to two columns
+  tidyr::separate_wider_delim(temp_var, delim = "_", names = c("measure","yr","env_short"), too_many = "drop") |>
+  # Recode variables
+  dplyr::mutate(
+    # Create new SES columns dependent on TCC var
+    pov = dplyr::case_when(
+      env_short %in% c('h5','s7','r1','c5') ~ pov_2015_h5_pct, 
+      env_short %in% c('h10','c10')     ~ pov_2015_h10_pct),
+    inc = dplyr::case_when(
+      env_short %in% c('h5','s7','r1','c5') ~ inc_2015_h5_med, 
+      env_short %in% c('h10','c10')    ~ inc_2015_h10_med),
+    # Recode environmental variables
+    env = dplyr:::case_when(
+      env_short == 's7'  ~ lvls_env[1],
+      env_short == 'h5'  ~ lvls_env[2],
+      env_short == 'h10' ~ lvls_env[3],
+      env_short == 'r1'  ~ lvls_env[4],
+      env_short == 'c5'  ~ lvls_env[5],
+      env_short == 'c10' ~ lvls_env[6]) |> 
+      factor(levels = lvls_env)) |> 
+  dplyr::relocate(c(measure,yr,env,temp_val),.after = sid)
+
+
+# Functions to allow mapping to continue despite model errors/models that do not converge
+multgee_wrapped <- function(formula, ...) {
+  args <- list(formula = formula, ...)
+  do.call(multgee::nomLORgee, args)
+}
+possible_multgee <- purrr::possibly(multgee_wrapped, otherwise = NA)
+
+
+# Fit models (different sets b/c different nb SES adjustment vars)
+  # 700m school + 500m home
+shade_mod_lst <- shade_long_lst |> 
+  # Remove missing
+  dplyr::filter(!is.na(temp_val)) |>
+  dplyr::group_by(sex, measure, env) |> 
+  tidyr::nest() |> 
+  dplyr::mutate(# Crude
+                mod = purrr::map(data, ~possible_multgee(cesd_class ~ temp_val, 
+                                                         id = .$grp_teacher, LORstr = "independence", # GEE arguments
+                                                         data = .)),
+                # Adj: individual
+                modadj     = purrr::map(data, ~possible_multgee(cesd_class ~ temp_val + raceeth + 
+                                                            education + lunch, 
+                                                            id = .$grp_teacher, LORstr = "independence", # GEE arguments
+                                                            data = .)),
+                # Adj: individual + nb poverty
+                modadj_pov = purrr::map(data, ~possible_multgee(cesd_class ~ temp_val + raceeth + 
+                                                            education + lunch + pov, 
+                                                            id = .$grp_teacher, LORstr = "independence", # GEE arguments
+                                                            data = .)),
+                # Adj: individual + nb median HH income
+                modadj_inc = purrr::map(data, ~possible_multgee(cesd_class ~ temp_val + raceeth + 
+                                                            education + lunch + inc, 
+                                                            id = .$grp_teacher, LORstr = "independence", # GEE arguments
+                                                            data = .)))
+
+
+
+# Extract model results
+tidy_nomgee <- function(mod){
+  mod |> 
+    summary() |> 
+    purrr::pluck('coefficients') |> 
+    dplyr::as_tibble(rownames = 'var') |> 
+    purrr::possibly(dplyr::transmute)(  # to avoid errors with empty cells
+      var = var,
+      est = Estimate,
+      or = exp(est),
+      se  = san.se,
+      z = san.z,
+      pval = `Pr(>|san.z|)`,
+      cl_low = exp(est - 1.959964*se), 
+      cl_high = exp(est + 1.959964*se))
+}
+extract_modres_lst <- function(df, mod, modlab){
+  df |> 
+    dplyr::mutate(modres = purrr::map(({{mod}}), tidy_nomgee)) |> 
+    tidyr::unnest(modres) |> 
+    dplyr::filter(str_detect(var,'temp_val')) |> 
+    dplyr::transmute( 
+      modlab = modlab,
+      measure = measure,
+      env = env,
+      sex = sex,
+      outcome = var,
+      or = or,
+      cl_low = cl_low,
+      cl_high = cl_high,
+      or_cl = stringr::str_c(
+        or |> round(2) |> format(2),' (',
+        cl_low |> round(2) |> format(2),',',
+        cl_high |> round(2) |> format(2),')') |> str_pad(width = 15, side = "left", pad = " "))
+}
+
+shade_mod_lst |> pluck('mod',1) |> tidy_nomgee()
+
+xmax_plot_lst <- 3
+
+lvls_modlab <- c('Unadjusted',
+                 'Adjusted:\nIndividual',
+                 'Adjusted:\nIndividual +\nNeighborhood Poverty',
+                 'Adjusted:\nIndividual +\nNeighborhood Med HH Income')
+shade_modres_lst <- dplyr::bind_rows(
+  shade_mod_lst |> extract_modres_lst(mod = mod,        lvls_modlab[1]),
+  shade_mod_lst |> extract_modres_lst(mod = modadj,     lvls_modlab[2]),
+  shade_mod_lst |> extract_modres_lst(mod = modadj_pov, lvls_modlab[3]),
+  shade_mod_lst |> extract_modres_lst(mod = modadj_inc, lvls_modlab[4])) |> 
+  dplyr::ungroup() |>  # dplyr::group_by(modlab, sex, measure, env) 
+  dplyr::mutate(modlab = modlab |> factor(levels = lvls_modlab)) |> 
+  dplyr::mutate(outcome = dplyr::case_when(
+    sex == 'Female' & outcome == 'temp_val:1' ~ 'Mild, Stable',
+    sex == 'Male'   & outcome == 'temp_val:1' ~ 'Mild, Increasing',
+                      outcome == 'temp_val:2' ~ 'Moderate, Decreasing',
+    sex == 'Female' & outcome == 'temp_val:3' ~ 'High, Arching',
+    sex == 'Male'   & outcome == 'temp_val:3' ~ 'High, Increasing') |> 
+      factor(levels = c('Mild, Stable','Mild, Increasing',
+                        'Moderate, Decreasing',
+                        'High, Arching','High, Increasing')),
+    cl_high_capped = ifelse(cl_high > xmax_plot, xmax_plot, NA)) |> 
+  dplyr::mutate(outcome = outcome |> factor(levels = c('Mild, Stable','Mild, Increasing',
+                                                        'Moderate, Decreasing',
+                                                        'High, Arching','High, Increasing'))) |> 
+  dplyr::mutate(sig = if_else(cl_high < 1 | cl_low > 1, 'Significant', 'Non-Significant'))
+
+
+
+### PLOT
+plot_shade_lst <- shade_modres_lst |> 
+  ggplot(aes(x = or, y = outcome, color = sig)) +
+  geom_point() +
+  geom_text(aes(label = or_cl), x = -0.1, hjust = 1) +
+  geom_errorbar(aes(xmin = cl_low, xmax = cl_high)) +
+  # geom_segment(aes(x = cl_low, y = outcome, xend = cl_high_capped, yend = outcome), position = position_dodge(0.5), arrow = arrow(length = unit(0.3, "cm"))) + # Add right arrows where CI too high, I think only works if there is at least one non-missing
+  geom_vline(xintercept = 0, alpha = 0.5) + # Vertical line: between label and plot
+  geom_vline(xintercept = 1, linetype = 2, alpha = 0.5) + # Vertical line: 0
+  ggh4x::facet_nested(modlab + sex ~ env, switch = "y", strip = strip_nested(size = "variable"), scales = "free") + 
+  labs(x = 'Estimate', y = 'CESD Class (Reference = Low, Stable)') +
+  guides(color = 'none') +
+  theme_bw() +
+  theme(axis.line = element_line(color = "grey50"),
+        strip.placement = "outside",
+        strip.text.y.left = element_text(angle = 90, hjust = 0.5),
+        ggh4x.facet.nestline = element_line(color = 'white', linetype = 1, linewidth = 1.5)) +
+  scale_y_discrete(limits = rev, drop = TRUE) +
+  scale_x_continuous(limits = c(-3, xmax_plot), breaks = seq(0, xmax_plot, 1), minor_breaks = seq(0, xmax_plot, 0.5)) # lower limit for enough label space
+
+
+
+### EXPORT
+plot_shade_lst
+ggsave(paste0('comms/figures/plot-lst-deptraj',date_today,'.png'), height = 10, width = 20)
+```
+
+
+## 6.3. Confounding Assessment
+Check association of confounders with outcome and exposure
+```{r}
+### Prep data
+# Factor vars
+lvls_conf_fct <- c(lvls_education[4], lvls_education[-4], 
+                   lvls_raceeth[4], lvls_raceeth[-4],
+                   lvls_lunch[3], lvls_lunch[-3])
+shade_conf_fct <- shade_clean |> 
+  tidyr::pivot_longer(cols = c('raceeth', 
+                               'education', 'lunch'),
+                      names_to = 'conf_var', values_to = "conf_val") |> 
+  dplyr::mutate(conf_val = conf_val |> factor(levels = lvls_conf_fct)) |> 
+  dplyr::filter(!is.na(conf_var)) |>
+  dplyr::group_by(sex, conf_var) |> 
+  tidyr::nest() 
+# Numeric vars
+shade_conf_num <- shade_clean |> 
+  dplyr::mutate(pov_h5_std = pov_2015_h5_pct |> std_mediqr(), 
+                pov_h10_std = pov_2015_h10_pct |> std_mediqr(),
+                neg_inc_h5_10k = -inc_2015_h5_med / 10000, # per 10k
+                neg_inc_h10_10k = -inc_2015_h10_med / 10000) |> 
+  tidyr::pivot_longer(cols = c('pov_h5_std', 'pov_h10_std',
+                               'neg_inc_h5_10k','neg_inc_h10_10k'),
+                      names_to = 'conf_var', values_to = "conf_val") |> 
+  dplyr::filter(!is.na(conf_var)) |>
+  dplyr::group_by(sex, conf_var) |> 
+  tidyr::nest()
+
+### Run models
+## Depression trajectories
+# Factor vars
+shade_mod_confdep_fct <- shade_conf_fct |> 
+  dplyr::mutate(mod = purrr::map(data, ~possible_multgee(cesd_class ~ conf_val, 
+                                                         id = .$grp_teacher, LORstr = "independence", 
+                                                         data = .)))
+# Numeric vars
+shade_mod_confdep_num <- shade_conf_num |> 
+  dplyr::mutate(mod = purrr::map(data, ~possible_multgee(cesd_class ~ conf_val, 
+                                                         id = .$grp_teacher, LORstr = "independence", 
+                                                         data = .)))
+
+### TCC
+# Factor vars
+shade_mod_conftcc_fct <- shade_conf_fct |> 
+  dplyr::mutate(mod = purrr::map(data, ~lm(tcc_2011_h5_avg_std ~ conf_val, data = .)))
+# Numeric vars
+shade_mod_conftcc_num <- shade_conf_num |> 
+  dplyr::mutate(mod = purrr::map(data, ~lm(tcc_2011_h5_avg_std ~ conf_val, data = .)))
+
+### Extract results
+## Create Functions
+# Depression Trajectories
+extract_modres_confdep <- function(df, mod, modlab){
+  df |> 
+    dplyr::mutate(modres = purrr::map(({{mod}}), tidy_nomgee)) |> 
+    tidyr::unnest(modres) |> 
+    dplyr::filter(str_detect(var,'conf_val')) |> 
+    dplyr::transmute( 
+      modlab = modlab,
+      conf = conf_var,
+      fct_lvl = str_extract(var, '(?<=conf_val)\\w+'),
+      sex = sex,
+      outcome = var,
+      or = or,
+      cl_low = cl_low,
+      cl_high = cl_high,
+      or_cl = stringr::str_c(
+        or |> round(2) |> format(2),' (',
+        cl_low |> round(2) |> format(2),',',
+        cl_high |> round(2) |> format(2),')') |> str_pad(width = 15, side = "left", pad = " "))
+}
+# TCC
+extract_modres_conftcc <- function(df, mod, modlab){
+  df |> 
+    dplyr::mutate(modres = purrr::map(({{mod}}), tidy, conf.int = TRUE)) |> 
+    tidyr::unnest(modres) |> 
+    dplyr::filter(str_detect(term,'conf_val')) |> 
+    dplyr::transmute( 
+      modlab = modlab,
+      conf = conf_var,
+      fct_lvl = str_extract(term, '(?<=conf_val)\\w+'),
+      sex = sex,
+      est = estimate,
+      cl_low = conf.low,
+      cl_high = conf.high,
+      est_cl = stringr::str_c(
+        est |> round(2) |> format(2),' (',
+        cl_low |> round(2) |> format(2),',',
+        cl_high |> round(2) |> format(2),')') |> str_pad(width = 15, side = "left", pad = " "))
+}
+
+## Extract results
+xmax_plot <- 3
+xmax_plot_lm <- 0.5
+lvls_modlab_conf <- c('Factor',
+                      'Numeric')
+# Depression Trajectories
+shade_modres_confdep <- dplyr::bind_rows(
+  shade_mod_confdep_fct |> extract_modres_confdep(mod = mod, modlab = 'Factor'), 
+  shade_mod_confdep_num |> extract_modres_confdep(mod = mod, modlab = 'Numeric')) |> 
+  dplyr::ungroup() |>  
+  dplyr::mutate(
+    modlab = modlab |> factor(levels = lvls_modlab_conf),
+    outcome = dplyr::case_when(
+      sex == 'Female' & str_detect(outcome,'1') ~ 'Mild, Stable', # str_detect, conf_val
+      sex == 'Male'   & str_detect(outcome,'1') ~ 'Mild, Increasing',
+                        str_detect(outcome,'2') ~ 'Moderate, Decreasing',
+      sex == 'Female' & str_detect(outcome,'3') ~ 'High, Arching',
+      sex == 'Male'   & str_detect(outcome,'3') ~ 'High, Increasing') |> 
+        factor(levels = c('Mild, Stable','Mild, Increasing',
+                          'Moderate, Decreasing',
+                          'High, Arching','High, Increasing')),
+    maineff = dplyr::case_when(
+      sex == 'Female' & outcome == 'High, Arching' ~ 'Yes',
+      TRUE ~ 'No'),
+    cl_high_capped = ifelse(cl_high > xmax_plot, xmax_plot, NA),
+    fct_lvl = dplyr::case_when(
+      conf_var == 'pov_h5_std'  ~ 'Per IQR',
+      conf_var == 'pov_h10_std' ~ 'Per IQR',
+      conf_var == 'neg_inc_h5_10k'  ~ 'Per -$10k',
+      conf_var == 'neg_inc_h10_10k' ~ 'Per -$10k',
+      TRUE                      ~ fct_lvl),
+    conf_var = dplyr::case_when(
+      conf_var == 'education'   ~ 'Education\n(Ref = College Deg+)',
+      conf_var == 'lunch'       ~ 'Free/Reduced\nLunch\n(Ref = None)',
+      conf_var == 'raceeth'     ~ 'Race and Ethnicity\n(Ref = White)',
+      conf_var == 'pov_h5_std'  ~ 'Poverty\n(500m)',
+      conf_var == 'pov_h10_std' ~ 'Poverty\n(1000m)',
+      conf_var == 'neg_inc_h5_10k'  ~ 'MedInc\n(500m)',
+      conf_var == 'neg_inc_h10_10k' ~ 'MedInc\n(1000m)'),
+    sig          = if_else(cl_high < 1 | cl_low > 1, 'Significant', 'Non-Significant'),
+    sig_fontface = if_else(cl_high < 1 | cl_low > 1, 'bold.italic', 'plain'),
+    pos = if_else(or > 1, 'Positive', 'Negative'))
+# TCC
+shade_modres_conftcc <- dplyr::bind_rows(
+  shade_mod_conftcc_fct |> extract_modres_conftcc(mod = mod, modlab = 'Factor'), 
+  shade_mod_conftcc_num |> extract_modres_conftcc(mod = mod, modlab = 'Numeric')) |> 
+  dplyr::ungroup() |>  
+  dplyr::mutate(
+    modlab = modlab |> factor(levels = lvls_modlab_conf),
+    maineff = dplyr::case_when(
+      sex == 'Female' ~ 'Yes',
+      TRUE ~ 'No'),
+    cl_high_capped = ifelse(cl_high > xmax_plot_lm, xmax_plot_lm, NA),
+    fct_lvl = dplyr::case_when(
+      conf_var == 'pov_h5_std'  ~ 'Per IQR',
+      conf_var == 'pov_h10_std' ~ 'Per IQR',
+      conf_var == 'neg_inc_h5_10k'  ~ 'Per -$10k',
+      conf_var == 'neg_inc_h10_10k' ~ 'Per -$10k',
+      TRUE                      ~ fct_lvl),
+    conf_var = dplyr::case_when(
+      conf_var == 'education'   ~ 'Education\n(Ref = College Deg+)',
+      conf_var == 'lunch'       ~ 'Free/Reduced\nLunch\n(Ref = None)',
+      conf_var == 'raceeth'     ~ 'Race and Ethnicity\n(Ref = White)',
+      conf_var == 'pov_h5_std'  ~ 'Poverty\n(500m)',
+      conf_var == 'pov_h10_std' ~ 'Poverty\n(1000m)',
+      conf_var == 'neg_inc_h5_10k'  ~ 'MedInc\n(500m)',
+      conf_var == 'neg_inc_h10_10k' ~ 'MedInc\n(1000m)'),
+    sig          = if_else(cl_high < 0 | cl_low > 0, 'Significant', 'Non-Significant'),
+    sig_fontface = if_else(cl_high < 0 | cl_low > 0, 'bold.italic', 'plain'),
+    pos = if_else(est > 0, 'Positive', 'Negative'))
+
+
+### PLOT
+# Depression Trajectories
+plot_shade_confdep <- shade_modres_confdep |> 
+  ggplot(aes(x = or, y = fct_lvl, color = pos)) +
+  geom_rect(aes(fill = factor(maineff), xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf)) +
+  geom_point() +
+  geom_text(aes(label = or_cl, fontface = sig_fontface), x = -0.1, hjust = 1) +
+  geom_errorbar(aes(xmin = cl_low, xmax = cl_high)) +
+  geom_segment(aes(x = cl_low, y = fct_lvl, xend = cl_high_capped, yend = fct_lvl), position = position_dodge(0.5), arrow = arrow(length = unit(0.3, "cm"))) + # Add right arrows where CI too high, I think only works if there is at least one non-missing
+  geom_vline(xintercept = 0, alpha = 0.5) + # Vertical line: between label and plot
+  geom_vline(xintercept = 1, linetype = 2, alpha = 0.5) + # Vertical line: 0
+  ggh4x::facet_nested(modlab + conf_var ~ sex + outcome, switch = "y", strip = strip_nested(size = "variable"), scales = "free", space = 'free') + 
+  scale_color_manual(values = c('firebrick', 'forestgreen')) +
+  scale_fill_manual(values = c('white', 'slategray1')) +
+  labs(x = 'Estimate', y = 'Confounding Variable', title = 'Outcome = CESD Class (Reference = Low, Stable)\nMultinomial GEE') +
+  guides(color = 'none') +
+  theme_bw() +
+  theme(legend.position = 'none',
+        axis.line = element_line(color = "grey50"),
+        strip.placement = "outside",
+        strip.text.y.left = element_text(angle = 90, hjust = 0.5),
+        ggh4x.facet.nestline = element_line(color = 'white', linetype = 1, linewidth = 1.5)) +
+  scale_y_discrete(limits = rev, drop = TRUE) +
+  scale_x_continuous(limits = c(-3, xmax_plot), breaks = seq(0, xmax_plot, 1), minor_breaks = seq(0, xmax_plot, 0.5)) 
+
+# TCC
+plot_shade_conftcc <- shade_modres_conftcc |> 
+  ggplot(aes(x = est, y = fct_lvl, color = pos)) +
+  geom_rect(aes(fill = factor(maineff), xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf)) +
+  geom_point() +
+  geom_text(aes(label = est_cl, fontface = sig_fontface), x = -1.7, hjust = 1) +
+  geom_errorbar(aes(xmin = cl_low, xmax = cl_high)) +
+  # geom_segment(aes(x = cl_low, y = fct_lvl, xend = cl_high_capped, yend = fct_lvl), position = position_dodge(0.5), arrow = arrow(length = unit(0.3, "cm"))) + # Add right arrows where CI too high, I think only works if there is at least one non-missing
+  geom_vline(xintercept = -1.6, alpha = 0.5) + # Vertical line: between label and plot
+  geom_vline(xintercept = 0, linetype = 2, alpha = 0.5) + # Vertical line: 0
+  ggh4x::facet_nested(modlab + conf_var ~ sex, switch = "y", strip = strip_nested(size = "variable"), scales = "free", space = 'free') + 
+  scale_color_manual(values = c('firebrick', 'forestgreen')) +
+  scale_fill_manual(values = c('white', 'slategray1')) +
+  labs(x = 'Estimate', y = 'Confounding Variable', title = 'Outcome = TCC (Home, 500m), Std\nOrdinary Least Squares') +
+  guides(color = 'none') +
+  theme_bw() +
+  theme(legend.position = 'none',
+        axis.line = element_line(color = "grey50"),
+        strip.placement = "outside",
+        strip.text.y.left = element_text(angle = 90, hjust = 0.5),
+        ggh4x.facet.nestline = element_line(color = 'white', linetype = 1, linewidth = 1.5)) +
+  scale_y_discrete(limits = rev, drop = TRUE) +
+  scale_x_continuous(limits = c(-3, xmax_plot_lm), breaks = seq(-1.5, xmax_plot_lm, 0.5), minor_breaks = seq(0, xmax_plot_lm, 0.5)) # lower limit for enough label space
+
+
+### EXPORT
+plot_shade_confdep
+ggsave(paste0('comms/figures/plot-tcc-deptraj-confdep',date_today,'.png'), height = 8, width = 18)
+plot_shade_conftcc
+ggsave(paste0('comms/figures/plot-tcc-deptraj-conftcc',date_today,'.png'), height = 8, width = 9)
+
+```
+
+
+## 6.4. Exploratory Effect Modification
+```{r}
+### MODEL NOT WORKING FOR EDUCATIONBIN with lunch as a covariate, so removed it
+  # "Error in solve.default(I0_mat) : 
+  # system is computationally singular: reciprocal condition number = 1.19783e-19""
+
+
+# Fit models (different sets b/c different nb SES adjustment vars)
+  # 700m school + 500m home
+shade_mod_edu <- shade_long |> 
+  dplyr::mutate(educationbin = dplyr::case_when(
+    education %in% c('Less than high school degree','High school degree','Some college') ~ 'Less than College Degree',
+    education %in% c('College degree or more') ~ 'At least College Degree')) |> 
+  dplyr::filter(!is.na(treecan_val) & !is.na(educationbin)) |>
+  dplyr::group_by(sex, measure, env) |> 
+  tidyr::nest() |> 
+  dplyr::mutate(# Crude
+                mod = purrr::map(data, ~possible_multgee(cesd_class ~ treecan_val*educationbin, 
+                                                         id = .$grp_teacher, LORstr = "independence", # GEE arguments
+                                                         data = .)),
+                # Adj: individual
+                modadj     = purrr::map(data, ~possible_multgee(cesd_class ~ treecan_val*educationbin + lunch + raceeth, 
+                                                            id = .$grp_teacher, LORstr = "independence", # GEE arguments
+                                                            data = .)),
+                # Adj: individual + nb poverty
+                modadj_pov = purrr::map(data, ~possible_multgee(cesd_class ~ treecan_val*educationbin + lunch + raceeth + 
+                                                            pov, 
+                                                            id = .$grp_teacher, LORstr = "independence", # GEE arguments
+                                                            data = .)),
+                # Adj: individual + nb median HH income
+                modadj_inc = purrr::map(data, ~possible_multgee(cesd_class ~ treecan_val*educationbin + lunch + raceeth + 
+                                                            inc, 
+                                                            id = .$grp_teacher, LORstr = "independence", # GEE arguments
+                                                            data = .)))
+
+shade_mod_edu |> print(n=100)
+
+
+
+mod1 |> tidy_nomgee_edu()
+
+mod1 <- shade_mod_edu |> pluck('mod',7) 
+
+modres_prelim <- mod1 |> 
+    summary() |> 
+    purrr::pluck('coefficients') |> 
+    dplyr::as_tibble(rownames = 'var') |> 
+    dplyr::mutate(edu_lesscollege = if_else(str_detect(var, 'treecan_val:\\d'), 1, NA))
+  # Prepare interaction coef & SE (for edu_lesscollege = 0)
+    # Get interaction estimates/coefficients
+  int_coefs <- modres_prelim |> 
+    dplyr::filter(str_detect(var, 'treecan_val')) |> 
+    dplyr::mutate(outcome_grp = str_extract(var, '\\d')) |> 
+    dplyr::group_by(outcome_grp) |> 
+    dplyr::summarize(beta1_3 = sum(Estimate)) |> 
+    dplyr::pull(beta1_3)
+   # Get variances/covariances to get interaction SE
+  vcov_df <- mod1 |> 
+    vcov() |> 
+    tibble::as_tibble(rownames = 'terms')
+  var_tcc <- vcov_df |> 
+    dplyr::filter(terms |> str_detect('treecan_val:\\d')) |> 
+    dplyr::select(matches('treecan_val:\\d')) |> 
+    as.matrix() |> 
+    diag()
+  var_edu <- vcov_df |> 
+    dplyr::filter(terms |> str_detect('^educationbinLess than College Degree:\\d')) |> 
+    dplyr::select(matches('^educationbinLess than College Degree:\\d')) |> 
+    as.matrix() |> 
+    diag()
+  var_co <- vcov_df |> 
+    dplyr::filter(terms |> str_detect('treecan_val:\\d')) |> 
+    dplyr::select(contains('treecan_val:educationbinLess than College Degree')) |> 
+    as.matrix() |> 
+    diag()
+var_tcc
+var_edu
+2*var_co
+
+library(contrast)
+install.packages('contrast')
+contrast(mod1)
+
+
+sqrt(var_tcc + var_edu + 2*var_co)
+
+vcov_df |> 
+    dplyr::filter(terms |> str_detect('treecan_val:')) |> 
+    dplyr::select(terms, contains('treecan_val:')) 
+
+
+# Extract model results
+tidy_nomgee_edu <- function(mod){
+  # Get model results (has edu_lesscollege = 1)
+  modres_prelim <- mod |> 
+    summary() |> 
+    purrr::pluck('coefficients') |> 
+    dplyr::as_tibble(rownames = 'var') |> 
+    dplyr::mutate(edu_lesscollege = if_else(str_detect(var, 'treecan_val:\\d'), '< College', NA)) # edu_lesscollege
+  # Prepare interaction coef & SE (for edu_lesscollege = 0)
+    # Get interaction estimates/coefficients
+  int_coefs <- modres_prelim |> 
+    dplyr::filter(str_detect(var, 'treecan_val')) |> 
+    dplyr::mutate(outcome_grp = str_extract(var, '\\d')) |> 
+    dplyr::group_by(outcome_grp) |> 
+    dplyr::summarize(beta1_3 = sum(Estimate)) |> 
+    dplyr::pull(beta1_3)
+   # Get variances/covariances to get interaction SE
+  vcov_df <- mod |> 
+    vcov() |> 
+    tibble::as_tibble(rownames = 'terms')
+  var_tcc <- vcov_df |> 
+    dplyr::filter(terms |> str_detect('treecan_val:\\d')) |> 
+    dplyr::select(matches('treecan_val:\\d')) |> 
+    as.matrix() |> 
+    diag()
+  var_edu <- vcov_df |> 
+    dplyr::filter(terms |> str_detect('^educationbinLess than College Degree:\\d')) |> 
+    dplyr::select(matches('^educationbinLess than College Degree:\\d')) |> 
+    as.matrix() |> 
+    diag()
+  var_co <- vcov_df |> 
+    dplyr::filter(terms |> str_detect('treecan_val:\\d')) |> 
+    dplyr::select(contains('treecan_val:educationbinLess than College Degree')) |> 
+    as.matrix() |> 
+    diag()
+    # Create tibble with interation coef & SE
+  edu_high_df <- tibble(
+    var = paste0('treecan_val:', 1:3),
+    edu_lesscollege = 'At least College', # edu_lesscollege
+    Estimate = int_est,
+    san.se = sqrt(var_tcc + var_edu + 2*var_co))
+  # Concatenate data frames
+  modres <- bind_rows(modres_prelim, edu_high_df)
+  # Clean up model results
+  modres |> 
+    purrr::possibly(dplyr::transmute)(  # to avoid errors with empty cells
+      edu_lesscollege = edu_lesscollege,
+      var = var,
+      est = Estimate,
+      or = exp(est),
+      se  = san.se,
+      z = san.z,
+      pval = `Pr(>|san.z|)`,
+      cl_low = exp(est - 1.959964*se), 
+      cl_high = exp(est + 1.959964*se))
+}
+extract_modres_edu <- function(df, mod, modlab){
+  df |> 
+    dplyr::mutate(modres = purrr::map(({{mod}}), tidy_nomgee_edu)) |> 
+    tidyr::unnest(modres) |> 
+    dplyr::filter(str_detect(var,'treecan_val:\\d')) |> 
+    dplyr::transmute( 
+      modlab = modlab,
+      measure = measure,
+      env = env,
+      sex = sex,
+      edu_lesscollege = edu_lesscollege,  # EM
+      outcome = var,
+      or = or,
+      cl_low = cl_low,
+      cl_high = cl_high,
+      or_cl = stringr::str_c(
+        or |> round(2) |> format(2),' (',
+        cl_low |> round(2) |> format(2),',',
+        cl_high |> round(2) |> format(2),')') |> str_pad(width = 15, side = "left", pad = " "))
+}
+
+xmax_plot_edu <- 2
+
+lvls_modlab <- c('Unadjusted',
+                 'Adjusted:\nIndividual',
+                 'Adjusted:\nIndividual +\nNeighborhood Poverty',
+                 'Adjusted:\nIndividual +\nNeighborhood Med HH Income')
+shade_modres_edu <- dplyr::bind_rows(
+  shade_mod_edu |> extract_modres_edu(mod = mod,        lvls_modlab[1]),
+  shade_mod_edu |> extract_modres_edu(mod = modadj,     lvls_modlab[2]),
+  shade_mod_edu |> extract_modres_edu(mod = modadj_pov, lvls_modlab[3]),
+  shade_mod_edu |> extract_modres_edu(mod = modadj_inc, lvls_modlab[4])) |> 
+  dplyr::ungroup() |>  # dplyr::group_by(modlab, sex, measure, env) 
+  dplyr::mutate(modlab = modlab |> factor(levels = lvls_modlab)) |> 
+  dplyr::mutate(outcome = dplyr::case_when(
+    sex == 'Female' & outcome == 'treecan_val:1' ~ 'Mild, Stable',
+    sex == 'Male'   & outcome == 'treecan_val:1' ~ 'Mild, Increasing',
+                      outcome == 'treecan_val:2' ~ 'Moderate, Decreasing',
+    sex == 'Female' & outcome == 'treecan_val:3' ~ 'High, Arching',
+    sex == 'Male'   & outcome == 'treecan_val:3' ~ 'High, Increasing') |> 
+      factor(levels = c('Mild, Stable','Mild, Increasing',
+                        'Moderate, Decreasing',
+                        'High, Arching','High, Increasing')),
+    cl_high_capped = ifelse(cl_high > xmax_plot_edu, xmax_plot_edu, NA)) |> 
+  dplyr::mutate(outcome = outcome |> factor(levels = c('Mild, Stable','Mild, Increasing',
+                                                        'Moderate, Decreasing',
+                                                        'High, Arching','High, Increasing'))) |> 
+  dplyr::mutate(sig = if_else(cl_high < 1 | cl_low > 1, 'Significant', 'Non-Significant'))
+
+
+
+### PLOT
+plot_shade_edu <- shade_modres_edu |> 
+  ggplot(aes(x = or, y = outcome, color = sig)) +
+  geom_point() +
+  geom_text(aes(label = or_cl), x = -0.1, hjust = 1) +
+  geom_errorbar(aes(xmin = cl_low, xmax = cl_high)) +
+  geom_segment(aes(x = cl_low, y = outcome, xend = cl_high_capped, yend = outcome), position = position_dodge(0.5), arrow = arrow(length = unit(0.3, "cm"))) + # Add right arrows where CI too high, I think only works if there is at least one non-missing
+  geom_vline(xintercept = 0, alpha = 0.5) + # Vertical line: between label and plot
+  geom_vline(xintercept = 1, linetype = 2, alpha = 0.5) + # Vertical line: 0
+  ggh4x::facet_nested(modlab + sex ~ env + edu_lesscollege, switch = "y", strip = strip_nested(size = "variable"), scales = "free") + 
+  labs(x = 'Estimate', y = 'CESD Class (Reference = Low, Stable)') +
+  guides(color = 'none') +
+  theme_bw() +
+  theme(axis.line = element_line(color = "grey50"),
+        strip.placement = "outside",
+        strip.text.y.left = element_text(angle = 90, hjust = 0.5),
+        ggh4x.facet.nestline = element_line(color = 'white', linetype = 1, linewidth = 1.5)) +
+  scale_y_discrete(limits = rev, drop = TRUE) +
+  scale_x_continuous(limits = c(-3, xmax_plot_edu), breaks = seq(0, xmax_plot_edu, 1), minor_breaks = seq(0, xmax_plot_edu, 0.5)) # lower limit for enough label space
+plot_shade_edu
+
+
+### EXPORT
+plot_shade_edu
+ggsave(paste0('comms/figures/plot-tcc-deptraj-paredu',date_today,'.png'), height = 10, width = 30)
+```
